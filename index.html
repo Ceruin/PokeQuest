@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Google Sheets Live Editor (Apps Script)</title>
+    <title>Google Sheets Live Editor</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
@@ -29,55 +29,48 @@
     </table>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz1cdrQuCOxYhGjH6QPMNDU3gPOknPfhHTgJi0Vt_hZSt0EYLsQjc-hO6XQ88_m_W6w/exec"; 
+    const scriptURL = "https://script.google.com/macros/s/AKfycbxogTgsLP3c3Pu7IRDSi-ssdHCX2Kfwa52ObXkJvldpueOfQU7dAJpfqKLSj0kmZDJI/exec";
 
-    // Load data on page load
-    $(document).ready(function () {
-        loadSheetData();
-    });
-
-    // Refresh button
-    $("#refreshBtn").click(loadSheetData);
-
-    // Load Sheet Data
+    // Load data from Google Sheets
     function loadSheetData() {
-        $.get(SCRIPT_URL, function (data) {
-            let values = data;
-            if (typeof data === "string") {
-                values = JSON.parse(data);
-            }
+        $.getJSON(scriptURL, function(response) {
             let rows = "";
-            for (let i = 1; i < values.length; i++) {
+            for (let i = 1; i < response.length; i++) {
                 rows += `<tr>
-                            <td contenteditable="true" data-row="${i+1}" data-col="1">${values[i][0] || ''}</td>
-                            <td contenteditable="true" data-row="${i+1}" data-col="2">${values[i][1] || ''}</td>
-                            <td contenteditable="true" data-row="${i+1}" data-col="3">${values[i][2] || ''}</td>
+                            <td contenteditable="true" data-row="${i+1}" data-col="1">${response[i][0] || ''}</td>
+                            <td contenteditable="true" data-row="${i+1}" data-col="2">${response[i][1] || ''}</td>
+                            <td contenteditable="true" data-row="${i+1}" data-col="3">${response[i][2] || ''}</td>
                          </tr>`;
             }
             $("#dataTable tbody").html(rows);
         });
     }
 
-    // Update cell when user finishes editing
+    // Update cell on blur
     $(document).on("blur", "td[contenteditable='true']", function () {
         const newValue = $(this).text();
         const row = $(this).data("row");
         const col = $(this).data("col");
 
         $.ajax({
-            url: SCRIPT_URL,
-            method: "POST",
+            url: scriptURL,
+            type: "POST",
             contentType: "application/json",
-            data: JSON.stringify({
-                row: row,
-                col: col,
-                value: newValue
-            }),
-            success: function (res) {
-                console.log("Updated:", res);
+            data: JSON.stringify({ row: row, col: col, value: newValue }),
+            success: function(res) {
+                console.log("Update success:", res);
+            },
+            error: function(err) {
+                console.error("Update failed:", err);
             }
         });
     });
+
+    $(document).ready(function() {
+        loadSheetData();
+        $("#refreshBtn").on("click", loadSheetData);
+    });
 </script>
+
 </body>
 </html>
