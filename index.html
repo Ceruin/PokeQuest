@@ -2,75 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Google Sheets Live Editor</title>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1 { text-align: center; }
-        #refreshBtn { padding: 10px 15px; margin: 10px; border: none; border-radius: 4px; cursor: pointer; background: #007BFF; color: white; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 10px; border: 1px solid #ccc; text-align: left; }
-        td[contenteditable="true"] { background: #f8f9fa; }
-    </style>
+    <title>Sheet Editor</title>
+    <meta http-equiv="refresh" content="0; URL='https://script.google.com/macros/s/AKfycbwFEO7zgnlm2LCQ1sjOFhThg9A7zzjlPG5vL2gZosK7lbFrSz7PXo0N-EjznoFCAOLO/exec'" />
 </head>
 <body>
-    <h1>Google Sheets Live Data</h1>
-    <button id="refreshBtn">Refresh Data</button>
-
-    <table id="dataTable">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Score</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-
-<script>
-    const scriptURL = "https://script.google.com/macros/s/AKfycbxogTgsLP3c3Pu7IRDSi-ssdHCX2Kfwa52ObXkJvldpueOfQU7dAJpfqKLSj0kmZDJI/exec";
-
-    // Load data from Google Sheets
-    function loadSheetData() {
-        $.getJSON(scriptURL, function(response) {
-            let rows = "";
-            for (let i = 1; i < response.length; i++) {
-                rows += `<tr>
-                            <td contenteditable="true" data-row="${i+1}" data-col="1">${response[i][0] || ''}</td>
-                            <td contenteditable="true" data-row="${i+1}" data-col="2">${response[i][1] || ''}</td>
-                            <td contenteditable="true" data-row="${i+1}" data-col="3">${response[i][2] || ''}</td>
-                         </tr>`;
-            }
-            $("#dataTable tbody").html(rows);
-        });
-    }
-
-    // Update cell on blur
-    $(document).on("blur", "td[contenteditable='true']", function () {
-        const newValue = $(this).text();
-        const row = $(this).data("row");
-        const col = $(this).data("col");
-
-        $.ajax({
-            url: scriptURL,
-            type: "POST",
-            contentType: "application/json",
-            data: JSON.stringify({ row: row, col: col, value: newValue }),
-            success: function(res) {
-                console.log("Update success:", res);
-            },
-            error: function(err) {
-                console.error("Update failed:", err);
-            }
-        });
-    });
-
-    $(document).ready(function() {
-        loadSheetData();
-        $("#refreshBtn").on("click", loadSheetData);
-    });
-</script>
-
+    <p>Redirecting to the Sheet Editor… <a href="https://script.google.com/macros/s/AKfycbwFEO7zgnlm2LCQ1sjOFhThg9A7zzjlPG5vL2gZosK7lbFrSz7PXo0N-EjznoFCAOLO/exec">Click here if not redirected</a></p>
 </body>
 </html>
