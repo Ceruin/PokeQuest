@@ -416,6 +416,11 @@
 		.dm-stat-input::-webkit-outer-spin-button,
 		.dm-stat-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 		.dm-stat-input[type=number] { -moz-appearance: textfield; }
+/* Moves UI */
+.move-card { background-color:#374151; border:1px solid #4a5568; border-radius:0.5rem; padding:0.75rem; }
+.move-title { font-weight:700; }
+.move-meta { font-size:0.75rem; color:#a0aec0; }
+.move-locked { opacity:0.5; filter:grayscale(100%); }
 
     </style>
 </head>
@@ -491,7 +496,18 @@
     </div>
 
     <!-- Modals -->
-    <div id="attack-modal" class="modal"><div class="modal-content container-box"><span class="close-button">&times;</span><h2 class="text-xl text-center mb-4">PLAYER ATTACKS</h2><ul id="attack-list" class="space-y-2"></ul></div></div>
+<div id="moves-modal" class="modal">
+  <div class="modal-content container-box">
+    <span class="close-button">&times;</span>
+    <h2 class="text-xl text-center mb-4">MOVES</h2>
+
+    <!-- Special move first -->
+    <div id="special-move" class="mb-4"></div>
+
+    <!-- Then the regular moves -->
+    <ul id="moves-list" class="space-y-2"></ul>
+  </div>
+</div>
     <div id="targets-modal" class="modal"><div class="modal-content container-box"><span class="close-button">&times;</span><h2 id="targets-modal-title" class="text-xl text-center mb-4"></h2><div id="targets-list-container" class="space-y-2"></div></div></div>
     <div id="share-item-modal" class="modal"><div class="modal-content container-box"><span class="close-button">&times;</span><h2 id="share-item-title" class="text-xl text-center mb-4">Share Item With...</h2><div id="share-player-list" class="space-y-2"></div></div></div>
     <div id="inventory-modal" class="modal"><div class="modal-content container-box"><span class="close-button">&times;</span><h2 class="text-xl text-center mb-4">INVENTORY</h2><ul id="inventory-list" class="space-y-2"></ul></div></div>
@@ -536,6 +552,17 @@
 
     <script>
         $(function () {
+        // Global delegated bindings so re-rendered buttons still work
+$(document)
+  .off('click', '#moves-button')
+  .on('click', '#moves-button', () => openMovesModal())
+  .off('click', '#inventory-button')
+  .on('click', '#inventory-button', () => openInventoryModal());
+
+// Optional: make the X button inside the moves modal use your modal helper
+$(document).on('click', '#moves-modal .close-button', () => closeModal && closeModal('moves'));
+
+        
             // DOM Elements
             const ELS = {
                 body: $('body'), gameBoard: $('#game-board'), logBox: $('#log-box'), playersList: $('#players-list'), enemiesList: $('#enemies-list'), turnOrderContainer: $('#turn-order-container'), currentTurnDisplay: $('#current-turn-display'), playerIdentity: $('#player-identity'), diceDisplay: $('#dice-display'), actionBoard: $('#action-board')
@@ -585,8 +612,77 @@
             ];
 
             const typeEffectiveness = { normal: { strengths: [], weaknesses: ['fighting'], immunities: ['ghost'], name: 'Normal' }, fire: { strengths: ['grass', 'ice', 'bug', 'steel'], weaknesses: ['water', 'ground', 'rock'], immunities: [], name: 'Fire' }, water: { strengths: ['fire', 'ground', 'rock'], weaknesses: ['electric', 'grass'], immunities: [], name: 'Water' }, electric: { strengths: ['water', 'flying'], weaknesses: ['ground'], immunities: [], name: 'Electric' }, grass: { strengths: ['water', 'ground', 'rock'], weaknesses: ['fire', 'ice', 'poison', 'flying', 'bug'], immunities: [], name: 'Grass' }, ice: { strengths: ['grass', 'ground', 'flying', 'dragon'], weaknesses: ['fire', 'fighting', 'rock', 'steel'], immunities: [], name: 'Ice' }, fighting: { strengths: ['normal', 'ice', 'rock', 'dark', 'steel'], weaknesses: ['flying', 'psychic', 'fairy'], immunities: [], name: 'Fighting' }, poison: { strengths: ['grass', 'fairy'], weaknesses: ['ground', 'psychic'], immunities: [], name: 'Poison' }, ground: { strengths: ['fire', 'electric', 'poison', 'rock', 'steel'], weaknesses: ['water', 'grass', 'ice'], immunities: ['electric'], name: 'Ground' }, flying: { strengths: ['fighting', 'bug', 'grass'], weaknesses: ['electric', 'ice', 'rock'], immunities: ['ground'], name: 'Flying' }, psychic: { strengths: ['fighting', 'poison'], weaknesses: ['bug', 'ghost', 'dark'], immunities: [], name: 'Psychic' }, bug: { strengths: ['grass', 'psychic', 'dark'], weaknesses: ['fire', 'flying', 'rock'], immunities: [], name: 'Bug' }, rock: { strengths: ['fire', 'ice', 'flying', 'bug'], weaknesses: ['water', 'grass', 'fighting', 'ground', 'steel'], immunities: ['normal'], name: 'Rock' }, ghost: { strengths: ['psychic', 'ghost'], weaknesses: ['ghost', 'dark'], immunities: ['normal', 'fighting'], name: 'Ghost' }, dragon: { strengths: ['dragon'], weaknesses: ['ice', 'dragon', 'fairy'], immunities: [], name: 'Dragon' }, dark: { strengths: ['psychic', 'ghost'], weaknesses: ['fighting', 'bug', 'fairy'], immunities: ['psychic'], name: 'Dark' }, steel: { strengths: ['ice', 'rock', 'fairy'], weaknesses: ['fire', 'fighting', 'ground'], immunities: ['poison'], name: 'Steel' }, fairy: { strengths: ['fighting', 'dragon', 'dark'], weaknesses: ['poison', 'steel'], immunities: ['dragon'], name: 'Fairy' } };
-            const initialPlayers = [{ id: 'p1', name: 'Pikachu', level: 5, hp: 100, atk: { val: 25, growth: 3, status: null }, spAtk: { val: 30, growth: 3, status: null }, def: { val: 20, growth: 2, status: null }, spDef: { val: 20, growth: 2, status: null }, spd: { val: 35, growth: 4, status: null }, acc: { val: 90, growth: 0, status: null }, types: ['electric'], abilities: [{ name: 'Thunder Shock', levelRequired: 1 }, { name: 'Quick Attack', levelRequired: 3 }], inventory: ['Oran Berry', 'Pecha Berry'], statuses: [], turnTaken: false }, { id: 'p2', name: 'Charmander', level: 5, hp: 110, atk: { val: 28, growth: 3, status: null }, spAtk: { val: 25, growth: 3, status: null }, def: { val: 22, growth: 2, status: null }, spDef: { val: 22, growth: 2, status: null }, spd: { val: 30, growth: 3, status: null }, acc: { val: 85, growth: 0, status: null }, types: ['fire'], abilities: [{ name: 'Ember', levelRequired: 1 }, { name: 'Scratch', levelRequired: 1 }], inventory: ['Sitrus Berry'], statuses: [], turnTaken: false }, { id: 'p3', name: 'Bulbasaur', level: 5, hp: 120, atk: { val: 22, growth: 2, status: null }, spAtk: { val: 28, growth: 3, status: null }, def: { val: 28, growth: 3, status: null }, spDef: { val: 28, growth: 3, status: null }, spd: { val: 25, growth: 2, status: null }, acc: { val: 95, growth: 0, status: null }, types: ['grass', 'poison'], abilities: [{ name: 'Vine Whip', levelRequired: 1 }], inventory: ['Revive Seed'], statuses: [{ name: 'Poisoned', duration: 3 }], turnTaken: false }, { id: 'p4', name: 'Squirtle', level: 5, hp: 105, atk: { val: 24, growth: 2, status: null }, spAtk: { val: 26, growth: 2, status: null }, def: { val: 30, growth: 4, status: null }, spDef: { val: 30, growth: 4, status: null }, spd: { val: 28, growth: 3, status: null }, acc: { val: 90, growth: 0, status: null }, types: ['water'], abilities: [{ name: 'Water Gun', levelRequired: 1 }], inventory: ['Potion'], statuses: [], turnTaken: false }, { id: 'p5', name: 'Eevee', level: 5, hp: 95, atk: { val: 30, growth: 3, status: null }, spAtk: { val: 30, growth: 3, status: null }, def: { val: 20, growth: 2, status: null }, spDef: { val: 20, growth: 2, status: null }, spd: { val: 40, growth: 4, status: null }, acc: { val: 88, growth: 0, status: null }, types: ['normal'], abilities: [{ name: 'Tackle', levelRequired: 1 }], inventory: [], statuses: [], turnTaken: false }];
-            const initialEnemies = [{ id: 'e1', name: 'Zubat', level: 3, hp: 80, atk: { val: 20, growth: 0, status: null }, spAtk: { val: 25, growth: 0, status: null }, def: { val: 15, growth: 0, status: null }, spDef: { val: 15, growth: 0, status: null }, spd: { val: 40, growth: 0, status: null }, acc: { val: 85, growth: 0, status: null }, types: ['poison', 'flying'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e2', name: 'Rattata', level: 4, hp: 95, atk: { val: 22, growth: 0, status: null }, spAtk: { val: 22, growth: 0, status: null }, def: { val: 18, growth: 0, status: null }, spDef: { val: 18, growth: 0, status: null }, spd: { val: 35, growth: 0, status: null }, acc: { val: 90, growth: 0, status: null }, types: ['normal'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e3', name: 'Geodude', level: 5, hp: 130, atk: { val: 28, growth: 0, status: null }, spAtk: { val: 15, growth: 0, status: null }, def: { val: 40, growth: 0, status: null }, spDef: { val: 40, growth: 0, status: null }, spd: { val: 15, growth: 0, status: null }, acc: { val: 80, growth: 0, status: null }, types: ['rock', 'ground'], turnTaken: false, statuses: [{ name: 'Paralyzed', duration: 1, statEffect: { spd: 'negative' } }], inventory: [] }];
+            const initialPlayers = [
+		  {
+		    id: 'p1', name: 'Pikachu', level: 5, hp: 100,
+		    atk: { val: 25, growth: 3, status: null }, spAtk: { val: 30, growth: 3, status: null },
+		    def: { val: 20, growth: 2, status: null }, spDef: { val: 20, growth: 2, status: null },
+		    spd: { val: 35, growth: 4, status: null }, acc: { val: 90, growth: 0, status: null },
+		    types: ['electric'],
+		    abilities: [
+		      { name: 'Thunder Shock', levelRequired: 1, description: 'Light Electric damage; great against Water/Flying.' },
+		      { name: 'Quick Attack',   levelRequired: 3, description: 'Swift Normal strike; often acts early.' }
+		    ],
+		    specialMove: { name: 'Volt Tackle', levelRequired: 7, description: 'High-power Electric charge. Risky but devastating.' },
+		    inventory: ['Oran Berry', 'Pecha Berry'],
+		    statuses: [], turnTaken: false
+		  },
+		  {
+		    id: 'p2', name: 'Charmander', level: 5, hp: 110,
+		    atk: { val: 28, growth: 3, status: null }, spAtk: { val: 25, growth: 3, status: null },
+		    def: { val: 22, growth: 2, status: null }, spDef: { val: 22, growth: 2, status: null },
+		    spd: { val: 30, growth: 3, status: null }, acc: { val: 85, growth: 0, status: null },
+		    types: ['fire'],
+		    abilities: [
+		      { name: 'Ember',   levelRequired: 1, description: 'Small Fire damage; can singe over time.' },
+		      { name: 'Scratch', levelRequired: 1, description: 'Basic claw attack. Reliable in a pinch.' }
+		    ],
+		    specialMove: { name: 'Flamethrower', levelRequired: 7, description: 'Strong Fire stream; excels at groups and Grass/Ice.' },
+		    inventory: ['Sitrus Berry'],
+		    statuses: [], turnTaken: false
+		  },
+		  {
+		    id: 'p3', name: 'Bulbasaur', level: 5, hp: 120,
+		    atk: { val: 22, growth: 2, status: null }, spAtk: { val: 28, growth: 3, status: null },
+		    def: { val: 28, growth: 3, status: null }, spDef: { val: 28, growth: 3, status: null },
+		    spd: { val: 25, growth: 2, status: null }, acc: { val: 95, growth: 0, status: null },
+		    types: ['grass', 'poison'],
+		    abilities: [
+		      { name: 'Vine Whip', levelRequired: 1, description: 'Grass lash; hits Ground/Rock/Water effectively.' }
+		    ],
+		    specialMove: { name: 'Solar Beam', levelRequired: 7, description: 'Massive Grass blast after gathering light.' },
+		    inventory: ['Revive Seed'],
+		    statuses: [{ name: 'Poisoned', duration: 3 }],
+		    turnTaken: false
+		  },
+		  {
+		    id: 'p4', name: 'Squirtle', level: 5, hp: 105,
+		    atk: { val: 24, growth: 2, status: null }, spAtk: { val: 26, growth: 2, status: null },
+		    def: { val: 30, growth: 4, status: null }, spDef: { val: 30, growth: 4, status: null },
+		    spd: { val: 28, growth: 3, status: null }, acc: { val: 90, growth: 0, status: null },
+		    types: ['water'],
+		    abilities: [
+		      { name: 'Water Gun', levelRequired: 1, description: 'Water burst; great vs Fire/Ground/Rock.' }
+		    ],
+		    specialMove: { name: 'Hydro Pump', levelRequired: 7, description: 'High-pressure Water cannon with big impact.' },
+		    inventory: ['Potion'],
+		    statuses: [], turnTaken: false
+		  },
+		  {
+		    id: 'p5', name: 'Eevee', level: 5, hp: 95,
+		    atk: { val: 30, growth: 3, status: null }, spAtk: { val: 30, growth: 3, status: null },
+		    def: { val: 20, growth: 2, status: null }, spDef: { val: 20, growth: 2, status: null },
+		    spd: { val: 40, growth: 4, status: null }, acc: { val: 88, growth: 0, status: null },
+		    types: ['normal'],
+		    abilities: [
+		      { name: 'Tackle', levelRequired: 1, description: 'Classic body-check. Simple and steady.' }
+		    ],
+		    specialMove: { name: 'Last Resort', levelRequired: 7, description: 'All-out Normal strike unleashed at higher levels.' },
+		    inventory: [],
+		    statuses: [], turnTaken: false
+		  }
+		];
+		const initialEnemies = [{ id: 'e1', name: 'Zubat', level: 3, hp: 80, atk: { val: 20, growth: 0, status: null }, spAtk: { val: 25, growth: 0, status: null }, def: { val: 15, growth: 0, status: null }, spDef: { val: 15, growth: 0, status: null }, spd: { val: 40, growth: 0, status: null }, acc: { val: 85, growth: 0, status: null }, types: ['poison', 'flying'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e2', name: 'Rattata', level: 4, hp: 95, atk: { val: 22, growth: 0, status: null }, spAtk: { val: 22, growth: 0, status: null }, def: { val: 18, growth: 0, status: null }, spDef: { val: 18, growth: 0, status: null }, spd: { val: 35, growth: 0, status: null }, acc: { val: 90, growth: 0, status: null }, types: ['normal'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e3', name: 'Geodude', level: 5, hp: 130, atk: { val: 28, growth: 0, status: null }, spAtk: { val: 15, growth: 0, status: null }, def: { val: 40, growth: 0, status: null }, spDef: { val: 40, growth: 0, status: null }, spd: { val: 15, growth: 0, status: null }, acc: { val: 80, growth: 0, status: null }, types: ['rock', 'ground'], turnTaken: false, statuses: [{ name: 'Paralyzed', duration: 1, statEffect: { spd: 'negative' } }], inventory: [] }];
 
             // --- Helpers ---
             function getStatusIcon(statusName) {
@@ -682,12 +778,19 @@
             }
             function renderActionBoard() {
                 ELS.actionBoard.empty();
+                const activeChar = turnOrder[currentTurnIndex];
+			const isEnemyTurn = !!activeChar && enemies.some(e => e.id === activeChar.id);
                 if (isDM) {
                     ELS.actionBoard.append(`
                         <button id="dm-force-turn-btn" class="col-span-1 px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Force DM Turn"><i class="fas fa-crown"></i></button>
                         <button id="dm-reset-turns-btn" class="col-span-1 px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="Reset All Turns"><i class="fas fa-redo"></i></button>
                         <button id="dm-end-turn-btn" class="col-span-1 px-2 py-2 bg-purple-600 rounded-lg hover:bg-purple-700" title="End DM Turn"><i class="fas fa-forward"></i></button>
                     `);
+                    if (isEnemyTurn) {
+			    ELS.actionBoard.append(`
+			      <button id="moves-button" class="col-span-1 px-2 py-2 bg-blue-600 rounded-lg hover:bg-blue-700" title="Moves"><i class="fa-solid fa-wand-sparkles"></i></button>
+			      <button id="inventory-button" class="col-span-1 px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>
+			    `);			  }
                     $('#dm-force-turn-btn').on('click', () => {
                          const dmIndex = turnOrder.findIndex(c => c.id === 'dm');
                          if (dmIndex > -1) {
@@ -713,13 +816,11 @@
                 } else {
                     const isPlayerTurn = !isDMTurn && players.some(p => p.id === turnOrder[currentTurnIndex]?.id && p.id === currentPlayerId);
                     if (isPlayerTurn) {
-                        ELS.actionBoard.append(`
-                            <button id="attack-button" class="px-2 py-2 bg-blue-600 rounded-lg hover:bg-blue-700"><i class="fa-solid fa-wand-sparkles"></i></button>
-                            <button id="inventory-button" class="px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700"><i class="fa-solid fa-sack-dollar"></i></button>
-                            <button id="end-turn-button" class="px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700"><i class="fas fa-forward"></i></button>
-                        `);
-                        $('#attack-button').on('click', openAttackModal);
-                        $('#inventory-button').on('click', openInventoryModal);
+				ELS.actionBoard.append(`
+				    <button id="moves-button" class="px-2 py-2 bg-blue-600 rounded-lg hover:bg-blue-700" title="Moves"><i class="fa-solid fa-wand-sparkles"></i></button>
+				    <button id="inventory-button" class="px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>
+				    <button id="end-turn-button" class="px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="End Turn"><i class="fas fa-forward"></i></button>
+				`);
                         $('#end-turn-button').on('click', () => {
                              const previousChar = turnOrder[currentTurnIndex];
                              if (previousChar) {
@@ -746,13 +847,99 @@
                 $('#attack-list').html(attacksHtml); openModal('attack');
             }
             function selectTargetsModal(attackName) { closeModal('attack'); $('#targets-modal-title').text(`Target for ${attackName}`); const targetsHtml = enemies.map(enemy => `<button class="target-btn w-full px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600" data-attack-name="${attackName}" data-target-name="${enemy.name}">${enemy.name}</button>`).join(''); $('#targets-list-container').html(targetsHtml); openModal('targets'); }
-            function openInventoryModal() {
-                const player = players.find(p => p.id === currentPlayerId); if (!player) return;
-                const inventoryHtml = (player.inventory || []).map(item => `<li class="p-2 rounded-lg bg-gray-700 flex justify-between items-center"><span>${getItemIcon(item)}${item}</span><div class="space-x-2"><button class="use-item-btn px-2 py-1 bg-blue-600 rounded-md text-xs" data-item="${item}">Use</button><button class="share-item-btn px-2 py-1 bg-green-600 rounded-md text-xs" data-item="${item}">Share</button></div></li>`).join('');
-                $('#inventory-list').html(inventoryHtml); openModal('inventory');
-            }
+     function openInventoryModal(targetId) {
+  let char = null;
+  if (targetId) {
+    char = players.find(p => p.id === targetId) || enemies.find(e => e.id === targetId);
+  } else if (isDM) {
+    const active = turnOrder[currentTurnIndex];
+    char = players.find(p => p.id === active?.id) || enemies.find(e => e.id === active?.id);
+  } else {
+    char = players.find(p => p.id === currentPlayerId);
+  }
+  if (!char) return;
+
+  const isOwnerOnTurn = (!isDM && char.id === currentPlayerId);
+  const items = char.inventory || [];
+
+  const inventoryHtml = items.length
+    ? items.map(item => {
+        const actions = isOwnerOnTurn
+          ? `<div class="space-x-2">
+               <button class="use-item-btn px-2 py-1 bg-blue-600 rounded-md text-xs" data-item="${item}">Use</button>
+               <button class="share-item-btn px-2 py-1 bg-green-600 rounded-md text-xs" data-item="${item}">Share</button>
+             </div>`
+          : '';
+        return `<li class="p-2 rounded-lg bg-gray-700 flex justify-between items-center">
+                  <span>${getItemIcon(item)}${item}</span>
+                  ${actions}
+                </li>`;
+      }).join('')
+    : '<li class="p-2 rounded-lg bg-gray-700 text-center text-xs text-gray-300">Empty</li>';
+
+  $('#inventory-list').html(inventoryHtml);
+  openModal('inventory');
+}
             function openUseItemModal(item) { closeModal('inventory'); $('#share-item-title').text(`Use "${item}" on...`); const allTargets = [...players, ...enemies]; const listHtml = allTargets.map(target => `<button class="confirm-use-item-btn w-full px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500" data-item="${item}" data-target-id="${target.id}">${target.name}</button>`).join(''); $('#share-player-list').html(listHtml); openModal('share-item'); }
             function openShareModal(item) { closeModal('inventory'); itemToShare = item; const listHtml = players.filter(p => p.id !== currentPlayerId).map(p => `<button class="confirm-share-btn w-full px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500" data-recipient-id="${p.id}">${p.name}</button>`).join(''); $('#share-player-list').html(listHtml); $('#share-item-title').text(`Share "${item}" with...`); openModal('share-item'); }
+		function openMovesModal(targetId) {
+		  // Pick which character to show:
+		  // - If DM and there's an active turn, show that active character (enemy or player)
+		  // - Else show the current player
+		  let char = null;
+		  if (targetId) {
+		    char = players.find(p => p.id === targetId) || enemies.find(e => e.id === targetId);
+		  } else if (isDM) {
+		    const active = turnOrder[currentTurnIndex];
+		    char = players.find(p => p.id === active?.id) || enemies.find(e => e.id === active?.id);
+		  } else {
+		    char = players.find(p => p.id === currentPlayerId);
+		  }
+		  if (!char) return;
+		
+		  // SPECIAL MOVE (top)
+		  const s = char.specialMove;
+		  if (s) {
+		    const specialCanUse = (char.level >= (s.levelRequired ?? 1));
+		    $('#special-move').html(`
+		      <div class="move-card ${specialCanUse ? '' : 'move-locked'}">
+		        <div class="flex items-center justify-between">
+		          <span class="move-title">⭐ ${s.name}</span>
+		          <span class="move-meta">Req Lvl ${s.levelRequired ?? 1}</span>
+		        </div>
+		        <p class="text-sm mt-1">${s.description || ''}</p>
+		      </div>
+		    `);
+		  } else {
+		    $('#special-move').empty();
+		  }
+		
+		  // REGULAR MOVES (sorted by required level asc)
+			const sortedMoves = [...(char.abilities || [])].sort((a, b) => {
+			  const al = Number.isFinite(+a.levelRequired) ? +a.levelRequired : 1;
+			  const bl = Number.isFinite(+b.levelRequired) ? +b.levelRequired : 1;
+			  return (al - bl) || a.name.localeCompare(b.name);
+			});
+		  const movesHtml = sortedMoves.map(m => {
+		    const canUse = char.level >= (m.levelRequired ?? 1);
+		    return `
+		      <li>
+		        <div class="move-card ${canUse ? '' : 'move-locked'}">
+		          <div class="flex items-center justify-between">
+		            <span class="move-title">${m.name}</span>
+		            <span class="move-meta">Req Lvl ${m.levelRequired ?? 1}</span>
+		          </div>
+		          <p class="text-sm mt-1">${m.description || ''}</p>
+		        </div>
+		      </li>
+		    `;
+		  }).join('');
+		  $('#moves-list').html(movesHtml);
+		
+		  // Open
+		openModal('moves');
+		}
+
 
             // --- PROFILE MODAL ---
             function openProfileModal(id) {
@@ -851,8 +1038,6 @@
             $('.modal').on('click', '.close-button', function () { $(this).closest('.modal').removeClass('flex'); });
             
             // Player Actions
-            ELS.actionBoard.on('click', '#attack-button', openAttackModal);
-            ELS.actionBoard.on('click', '#inventory-button', openInventoryModal);
             ELS.actionBoard.on('click', '#end-turn-button', function() {
                 const previousChar = turnOrder[currentTurnIndex];
                 if (previousChar) {
@@ -908,7 +1093,7 @@
 });
 
 
-            $('#attack-list').on('click', '.select-attack-btn', function () { selectTargetsModal($(this).data('attack-name')); });
+
             $('#targets-list-container').on('click', '.target-btn', function () { logAction(`${players.find(p => p.id === currentPlayerId).name} attacked ${$(this).data('target-name')} with ${$(this).data('attack-name')}`); closeModal('targets'); });
             $('#inventory-list').on('click', '.use-item-btn', function () { openUseItemModal($(this).data('item')); });
             $('#inventory-list').on('click', '.share-item-btn', function () { openShareModal($(this).data('item')); });
