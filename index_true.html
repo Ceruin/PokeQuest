@@ -64,12 +64,14 @@
             transition: box-shadow 0.3s ease-in-out;
             overflow: hidden; /* Ensure image fits */
         }
-        .portrait img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            image-rendering: pixelated;
-        }
+
+            .portrait img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                image-rendering: pixelated;
+            }
+
         .item-icon {
             width: 1.5rem;
             height: 1.5rem;
@@ -103,13 +105,13 @@
             font-family: 'Courier New', Courier, monospace;
         }
 
-	.dm-mode-visible { 
-	  display: none !important; 
-	}
-	
-	body.dm-mode .dm-mode-visible { 
-	  display: inline-flex !important; 
-	}
+        .dm-mode-visible {
+            display: none !important;
+        }
+
+        body.dm-mode .dm-mode-visible {
+            display: inline-flex !important;
+        }
 
         .dm-turn-visible {
             display: none;
@@ -397,31 +399,52 @@
         .dice-animate {
             animation: dice-shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
         }
-        
-        /* DM stat inputs: compact, consistent width */
-		.dm-stat-input{
-		  width: 3.5rem;          /* ~56px */
-		  max-width: 4.5rem;
-		  padding: 0.125rem 0.25rem;
-		  background-color: #374151; /* gray-700 */
-		  color: #e2e8f0;            /* gray-200 */
-		  border: 1px solid #4a5568; /* gray-600 */
-		  border-radius: 0.25rem;
-		  text-align: center;
-		  line-height: 1.25rem;
-		  box-sizing: border-box;
-		}
-		
-		/* Optional: hide number spinners for steadier sizing */
-		.dm-stat-input::-webkit-outer-spin-button,
-		.dm-stat-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-		.dm-stat-input[type=number] { -moz-appearance: textfield; }
-/* Moves UI */
-.move-card { background-color:#374151; border:1px solid #4a5568; border-radius:0.5rem; padding:0.75rem; }
-.move-title { font-weight:700; }
-.move-meta { font-size:0.75rem; color:#a0aec0; }
-.move-locked { opacity:0.5; filter:grayscale(100%); }
 
+        /* DM stat inputs: compact, consistent width */
+        .dm-stat-input {
+            width: 3.5rem; /* ~56px */
+            max-width: 4.5rem;
+            padding: 0.125rem 0.25rem;
+            background-color: #374151; /* gray-700 */
+            color: #e2e8f0; /* gray-200 */
+            border: 1px solid #4a5568; /* gray-600 */
+            border-radius: 0.25rem;
+            text-align: center;
+            line-height: 1.25rem;
+            box-sizing: border-box;
+        }
+
+            /* Optional: hide number spinners for steadier sizing */
+            .dm-stat-input::-webkit-outer-spin-button,
+            .dm-stat-input::-webkit-inner-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+            }
+
+            .dm-stat-input[type=number] {
+                -moz-appearance: textfield;
+            }
+        /* Moves UI */
+        .move-card {
+            background-color: #374151;
+            border: 1px solid #4a5568;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+        }
+
+        .move-title {
+            font-weight: 700;
+        }
+
+        .move-meta {
+            font-size: 0.75rem;
+            color: #a0aec0;
+        }
+
+        .move-locked {
+            opacity: 0.5;
+            filter: grayscale(100%);
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200 flex flex-col items-center justify-center p-2 sm:p-4 min-h-screen">
@@ -440,7 +463,7 @@
             </button>
         </div>
         <div class="mt-8">
-             <button id="reset-selections-btn" class="px-4 py-2 bg-red-700 rounded-lg shadow-md hover:bg-red-800 text-xs">Reset Selections</button>
+            <button id="reset-selections-btn" class="px-4 py-2 bg-red-700 rounded-lg shadow-md hover:bg-red-800 text-xs">Reset Selections</button>
         </div>
     </div>
 
@@ -453,7 +476,7 @@
                 <button id="viewToggle" class="hidden px-4 py-2 bg-purple-600 rounded-lg shadow-md hover:bg-purple-700">DM View</button>
             </div>
         </div>
-        
+
         <!-- Turn Order Display -->
         <div class="flex flex-col items-center justify-center space-y-4 mb-4">
             <div id="turn-order-container" class="flex items-center justify-center flex-wrap"></div>
@@ -464,7 +487,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 w-full">
             <!-- Players Column -->
             <div class="flex flex-col space-y-4"><div class="container-box p-4"><h2 class="text-xl mb-4 text-center">PLAYERS</h2><div id="players-list" class="flex flex-col space-y-4"></div></div></div>
-            
+
             <!-- Center Column -->
             <div class="flex flex-col items-center space-y-8">
                 <div class="dice-display" id="dice-display">?</div>
@@ -477,37 +500,37 @@
                 <div class="container-box w-full p-4"><h2 class="text-xl text-center mb-4">ROLL DICE</h2><div id="dice-buttons" class="grid grid-cols-3 gap-2"><button data-sides="4" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D4</button><button data-sides="6" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D6</button><button data-sides="8" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D8</button><button data-sides="10" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D10</button><button data-sides="12" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D12</button><button data-sides="20" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D20</button></div></div>
                 <div class="container-box w-full p-4 flex-grow flex flex-col"><div id="log-header" class="log-header mb-2"><h2 class="text-xl text-center">LOG</h2><span id="log-toggle-icon" class="toggle-icon">+</span></div><div id="log-content" class="hidden"><textarea id="log-box" class="log-box w-full h-48" readonly>Log start...\n</textarea></div></div>
             </div>
-            
+
             <!-- Enemies Column -->
             <div class="flex flex-col space-y-4">
-		  <div class="container-box p-4">
-		    <div class="mb-4 flex items-center justify-center gap-2">
-		      <h2 class="text-xl text-center">ENEMIES</h2>
-			<button id="add-enemy-button"
-			        class="dm-mode-visible inline-flex items-center justify-center w-8 h-8 p-0 bg-green-600 rounded-md hover:bg-green-700"
-			        aria-label="Add Enemy" title="Add Enemy">
-			  <i class="fas fa-plus fa-sm"></i>
-			</button>
-		    </div>
-		    <div id="enemies-list" class="flex flex-col space-y-4"></div>
-		  </div>
-		</div>
+                <div class="container-box p-4">
+                    <div class="mb-4 flex items-center justify-center gap-2">
+                        <h2 class="text-xl text-center">ENEMIES</h2>
+                        <button id="add-enemy-button"
+                                class="dm-mode-visible inline-flex items-center justify-center w-8 h-8 p-0 bg-green-600 rounded-md hover:bg-green-700"
+                                aria-label="Add Enemy" title="Add Enemy">
+                            <i class="fas fa-plus fa-sm"></i>
+                        </button>
+                    </div>
+                    <div id="enemies-list" class="flex flex-col space-y-4"></div>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Modals -->
-<div id="moves-modal" class="modal">
-  <div class="modal-content container-box">
-    <span class="close-button">&times;</span>
-    <h2 class="text-xl text-center mb-4">MOVES</h2>
+    <div id="moves-modal" class="modal">
+        <div class="modal-content container-box">
+            <span class="close-button">&times;</span>
+            <h2 class="text-xl text-center mb-4">MOVES</h2>
 
-    <!-- Special move first -->
-    <div id="special-move" class="mb-4"></div>
+            <!-- Special move first -->
+            <div id="special-move" class="mb-4"></div>
 
-    <!-- Then the regular moves -->
-    <ul id="moves-list" class="space-y-2"></ul>
-  </div>
-</div>
+            <!-- Then the regular moves -->
+            <ul id="moves-list" class="space-y-2"></ul>
+        </div>
+    </div>
     <div id="targets-modal" class="modal"><div class="modal-content container-box"><span class="close-button">&times;</span><h2 id="targets-modal-title" class="text-xl text-center mb-4"></h2><div id="targets-list-container" class="space-y-2"></div></div></div>
     <div id="share-item-modal" class="modal"><div class="modal-content container-box"><span class="close-button">&times;</span><h2 id="share-item-title" class="text-xl text-center mb-4">Share Item With...</h2><div id="share-player-list" class="space-y-2"></div></div></div>
     <div id="inventory-modal" class="modal"><div class="modal-content container-box"><span class="close-button">&times;</span><h2 class="text-xl text-center mb-4">INVENTORY</h2><ul id="inventory-list" class="space-y-2"></ul></div></div>
@@ -552,17 +575,17 @@
 
     <script>
         $(function () {
-        // Global delegated bindings so re-rendered buttons still work
-$(document)
-  .off('click', '#moves-button')
-  .on('click', '#moves-button', () => openMovesModal())
-  .off('click', '#inventory-button')
-  .on('click', '#inventory-button', () => openInventoryModal());
+            // Global delegated bindings so re-rendered buttons still work
+            $(document)
+                .off('click', '#moves-button')
+                .on('click', '#moves-button', () => openMovesModal())
+                .off('click', '#inventory-button')
+                .on('click', '#inventory-button', () => openInventoryModal());
 
-// Optional: make the X button inside the moves modal use your modal helper
-$(document).on('click', '#moves-modal .close-button', () => closeModal && closeModal('moves'));
+            // Optional: make the X button inside the moves modal use your modal helper
+            $(document).on('click', '#moves-modal .close-button', () => closeModal && closeModal('moves'));
 
-        
+
             // DOM Elements
             const ELS = {
                 body: $('body'), gameBoard: $('#game-board'), logBox: $('#log-box'), playersList: $('#players-list'), enemiesList: $('#enemies-list'), turnOrderContainer: $('#turn-order-container'), currentTurnDisplay: $('#current-turn-display'), playerIdentity: $('#player-identity'), diceDisplay: $('#dice-display'), actionBoard: $('#action-board')
@@ -577,10 +600,10 @@ $(document).on('click', '#moves-modal .close-button', () => closeModal && closeM
 
             // --- Master Data ---
             const SPECIES_TEMPLATES = {
-			  Pikachu:   { types: ['electric'], baseStats: { atk:22, spAtk:26, def:18, spDef:20, spd:35, acc:90 } },
-			  Charmander:{ types: ['fire'],     baseStats: { atk:24, spAtk:24, def:18, spDef:20, spd:30, acc:88 } }
-			};
-            
+                Pikachu: { types: ['electric'], baseStats: { atk: 22, spAtk: 26, def: 18, spDef: 20, spd: 35, acc: 90 } },
+                Charmander: { types: ['fire'], baseStats: { atk: 24, spAtk: 24, def: 18, spDef: 20, spd: 30, acc: 88 } }
+            };
+
             const POKEMON_IDS = {
                 'Pikachu': 25,
                 'Charmander': 4,
@@ -613,108 +636,108 @@ $(document).on('click', '#moves-modal .close-button', () => closeModal && closeM
 
             const typeEffectiveness = { normal: { strengths: [], weaknesses: ['fighting'], immunities: ['ghost'], name: 'Normal' }, fire: { strengths: ['grass', 'ice', 'bug', 'steel'], weaknesses: ['water', 'ground', 'rock'], immunities: [], name: 'Fire' }, water: { strengths: ['fire', 'ground', 'rock'], weaknesses: ['electric', 'grass'], immunities: [], name: 'Water' }, electric: { strengths: ['water', 'flying'], weaknesses: ['ground'], immunities: [], name: 'Electric' }, grass: { strengths: ['water', 'ground', 'rock'], weaknesses: ['fire', 'ice', 'poison', 'flying', 'bug'], immunities: [], name: 'Grass' }, ice: { strengths: ['grass', 'ground', 'flying', 'dragon'], weaknesses: ['fire', 'fighting', 'rock', 'steel'], immunities: [], name: 'Ice' }, fighting: { strengths: ['normal', 'ice', 'rock', 'dark', 'steel'], weaknesses: ['flying', 'psychic', 'fairy'], immunities: [], name: 'Fighting' }, poison: { strengths: ['grass', 'fairy'], weaknesses: ['ground', 'psychic'], immunities: [], name: 'Poison' }, ground: { strengths: ['fire', 'electric', 'poison', 'rock', 'steel'], weaknesses: ['water', 'grass', 'ice'], immunities: ['electric'], name: 'Ground' }, flying: { strengths: ['fighting', 'bug', 'grass'], weaknesses: ['electric', 'ice', 'rock'], immunities: ['ground'], name: 'Flying' }, psychic: { strengths: ['fighting', 'poison'], weaknesses: ['bug', 'ghost', 'dark'], immunities: [], name: 'Psychic' }, bug: { strengths: ['grass', 'psychic', 'dark'], weaknesses: ['fire', 'flying', 'rock'], immunities: [], name: 'Bug' }, rock: { strengths: ['fire', 'ice', 'flying', 'bug'], weaknesses: ['water', 'grass', 'fighting', 'ground', 'steel'], immunities: ['normal'], name: 'Rock' }, ghost: { strengths: ['psychic', 'ghost'], weaknesses: ['ghost', 'dark'], immunities: ['normal', 'fighting'], name: 'Ghost' }, dragon: { strengths: ['dragon'], weaknesses: ['ice', 'dragon', 'fairy'], immunities: [], name: 'Dragon' }, dark: { strengths: ['psychic', 'ghost'], weaknesses: ['fighting', 'bug', 'fairy'], immunities: ['psychic'], name: 'Dark' }, steel: { strengths: ['ice', 'rock', 'fairy'], weaknesses: ['fire', 'fighting', 'ground'], immunities: ['poison'], name: 'Steel' }, fairy: { strengths: ['fighting', 'dragon', 'dark'], weaknesses: ['poison', 'steel'], immunities: ['dragon'], name: 'Fairy' } };
             const initialPlayers = [
-		  {
-		    id: 'p1', name: 'Pikachu', level: 5, hp: 100,
-		    atk: { val: 25, growth: 3, status: null }, spAtk: { val: 30, growth: 3, status: null },
-		    def: { val: 20, growth: 2, status: null }, spDef: { val: 20, growth: 2, status: null },
-		    spd: { val: 35, growth: 4, status: null }, acc: { val: 90, growth: 0, status: null },
-		    types: ['electric'],
-		    abilities: [
-		      { name: 'Thunder Shock', levelRequired: 1, description: 'Light Electric damage; great against Water/Flying.' },
-		      { name: 'Quick Attack',   levelRequired: 3, description: 'Swift Normal strike; often acts early.' }
-		    ],
-		    specialMove: { name: 'Volt Tackle', levelRequired: 7, description: 'High-power Electric charge. Risky but devastating.' },
-		    inventory: ['Oran Berry', 'Pecha Berry'],
-		    statuses: [], turnTaken: false
-		  },
-		  {
-		    id: 'p2', name: 'Charmander', level: 5, hp: 110,
-		    atk: { val: 28, growth: 3, status: null }, spAtk: { val: 25, growth: 3, status: null },
-		    def: { val: 22, growth: 2, status: null }, spDef: { val: 22, growth: 2, status: null },
-		    spd: { val: 30, growth: 3, status: null }, acc: { val: 85, growth: 0, status: null },
-		    types: ['fire'],
-		    abilities: [
-		      { name: 'Ember',   levelRequired: 1, description: 'Small Fire damage; can singe over time.' },
-		      { name: 'Scratch', levelRequired: 1, description: 'Basic claw attack. Reliable in a pinch.' }
-		    ],
-		    specialMove: { name: 'Flamethrower', levelRequired: 7, description: 'Strong Fire stream; excels at groups and Grass/Ice.' },
-		    inventory: ['Sitrus Berry'],
-		    statuses: [], turnTaken: false
-		  },
-		  {
-		    id: 'p3', name: 'Bulbasaur', level: 5, hp: 120,
-		    atk: { val: 22, growth: 2, status: null }, spAtk: { val: 28, growth: 3, status: null },
-		    def: { val: 28, growth: 3, status: null }, spDef: { val: 28, growth: 3, status: null },
-		    spd: { val: 25, growth: 2, status: null }, acc: { val: 95, growth: 0, status: null },
-		    types: ['grass', 'poison'],
-		    abilities: [
-		      { name: 'Vine Whip', levelRequired: 1, description: 'Grass lash; hits Ground/Rock/Water effectively.' }
-		    ],
-		    specialMove: { name: 'Solar Beam', levelRequired: 7, description: 'Massive Grass blast after gathering light.' },
-		    inventory: ['Revive Seed'],
-		    statuses: [{ name: 'Poisoned', duration: 3 }],
-		    turnTaken: false
-		  },
-		  {
-		    id: 'p4', name: 'Squirtle', level: 5, hp: 105,
-		    atk: { val: 24, growth: 2, status: null }, spAtk: { val: 26, growth: 2, status: null },
-		    def: { val: 30, growth: 4, status: null }, spDef: { val: 30, growth: 4, status: null },
-		    spd: { val: 28, growth: 3, status: null }, acc: { val: 90, growth: 0, status: null },
-		    types: ['water'],
-		    abilities: [
-		      { name: 'Water Gun', levelRequired: 1, description: 'Water burst; great vs Fire/Ground/Rock.' }
-		    ],
-		    specialMove: { name: 'Hydro Pump', levelRequired: 7, description: 'High-pressure Water cannon with big impact.' },
-		    inventory: ['Potion'],
-		    statuses: [], turnTaken: false
-		  },
-		  {
-		    id: 'p5', name: 'Eevee', level: 5, hp: 95,
-		    atk: { val: 30, growth: 3, status: null }, spAtk: { val: 30, growth: 3, status: null },
-		    def: { val: 20, growth: 2, status: null }, spDef: { val: 20, growth: 2, status: null },
-		    spd: { val: 40, growth: 4, status: null }, acc: { val: 88, growth: 0, status: null },
-		    types: ['normal'],
-		    abilities: [
-		      { name: 'Tackle', levelRequired: 1, description: 'Classic body-check. Simple and steady.' }
-		    ],
-		    specialMove: { name: 'Last Resort', levelRequired: 7, description: 'All-out Normal strike unleashed at higher levels.' },
-		    inventory: [],
-		    statuses: [], turnTaken: false
-		  }
-		];
-		const initialEnemies = [{ id: 'e1', name: 'Zubat', level: 3, hp: 80, atk: { val: 20, growth: 0, status: null }, spAtk: { val: 25, growth: 0, status: null }, def: { val: 15, growth: 0, status: null }, spDef: { val: 15, growth: 0, status: null }, spd: { val: 40, growth: 0, status: null }, acc: { val: 85, growth: 0, status: null }, types: ['poison', 'flying'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e2', name: 'Rattata', level: 4, hp: 95, atk: { val: 22, growth: 0, status: null }, spAtk: { val: 22, growth: 0, status: null }, def: { val: 18, growth: 0, status: null }, spDef: { val: 18, growth: 0, status: null }, spd: { val: 35, growth: 0, status: null }, acc: { val: 90, growth: 0, status: null }, types: ['normal'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e3', name: 'Geodude', level: 5, hp: 130, atk: { val: 28, growth: 0, status: null }, spAtk: { val: 15, growth: 0, status: null }, def: { val: 40, growth: 0, status: null }, spDef: { val: 40, growth: 0, status: null }, spd: { val: 15, growth: 0, status: null }, acc: { val: 80, growth: 0, status: null }, types: ['rock', 'ground'], turnTaken: false, statuses: [{ name: 'Paralyzed', duration: 1, statEffect: { spd: 'negative' } }], inventory: [] }];
+                {
+                    id: 'p1', name: 'Pikachu', level: 5, hp: 100,
+                    atk: { val: 25, growth: 3, status: null }, spAtk: { val: 30, growth: 3, status: null },
+                    def: { val: 20, growth: 2, status: null }, spDef: { val: 20, growth: 2, status: null },
+                    spd: { val: 35, growth: 4, status: null }, acc: { val: 90, growth: 0, status: null },
+                    types: ['electric'],
+                    abilities: [
+                        { name: 'Thunder Shock', levelRequired: 1, description: 'Light Electric damage; great against Water/Flying.' },
+                        { name: 'Quick Attack', levelRequired: 3, description: 'Swift Normal strike; often acts early.' }
+                    ],
+                    specialMove: { name: 'Volt Tackle', levelRequired: 7, description: 'High-power Electric charge. Risky but devastating.' },
+                    inventory: ['Oran Berry', 'Pecha Berry'],
+                    statuses: [], turnTaken: false
+                },
+                {
+                    id: 'p2', name: 'Charmander', level: 5, hp: 110,
+                    atk: { val: 28, growth: 3, status: null }, spAtk: { val: 25, growth: 3, status: null },
+                    def: { val: 22, growth: 2, status: null }, spDef: { val: 22, growth: 2, status: null },
+                    spd: { val: 30, growth: 3, status: null }, acc: { val: 85, growth: 0, status: null },
+                    types: ['fire'],
+                    abilities: [
+                        { name: 'Ember', levelRequired: 1, description: 'Small Fire damage; can singe over time.' },
+                        { name: 'Scratch', levelRequired: 1, description: 'Basic claw attack. Reliable in a pinch.' }
+                    ],
+                    specialMove: { name: 'Flamethrower', levelRequired: 7, description: 'Strong Fire stream; excels at groups and Grass/Ice.' },
+                    inventory: ['Sitrus Berry'],
+                    statuses: [], turnTaken: false
+                },
+                {
+                    id: 'p3', name: 'Bulbasaur', level: 5, hp: 120,
+                    atk: { val: 22, growth: 2, status: null }, spAtk: { val: 28, growth: 3, status: null },
+                    def: { val: 28, growth: 3, status: null }, spDef: { val: 28, growth: 3, status: null },
+                    spd: { val: 25, growth: 2, status: null }, acc: { val: 95, growth: 0, status: null },
+                    types: ['grass', 'poison'],
+                    abilities: [
+                        { name: 'Vine Whip', levelRequired: 1, description: 'Grass lash; hits Ground/Rock/Water effectively.' }
+                    ],
+                    specialMove: { name: 'Solar Beam', levelRequired: 7, description: 'Massive Grass blast after gathering light.' },
+                    inventory: ['Revive Seed'],
+                    statuses: [{ name: 'Poisoned', duration: 3 }],
+                    turnTaken: false
+                },
+                {
+                    id: 'p4', name: 'Squirtle', level: 5, hp: 105,
+                    atk: { val: 24, growth: 2, status: null }, spAtk: { val: 26, growth: 2, status: null },
+                    def: { val: 30, growth: 4, status: null }, spDef: { val: 30, growth: 4, status: null },
+                    spd: { val: 28, growth: 3, status: null }, acc: { val: 90, growth: 0, status: null },
+                    types: ['water'],
+                    abilities: [
+                        { name: 'Water Gun', levelRequired: 1, description: 'Water burst; great vs Fire/Ground/Rock.' }
+                    ],
+                    specialMove: { name: 'Hydro Pump', levelRequired: 7, description: 'High-pressure Water cannon with big impact.' },
+                    inventory: ['Potion'],
+                    statuses: [], turnTaken: false
+                },
+                {
+                    id: 'p5', name: 'Eevee', level: 5, hp: 95,
+                    atk: { val: 30, growth: 3, status: null }, spAtk: { val: 30, growth: 3, status: null },
+                    def: { val: 20, growth: 2, status: null }, spDef: { val: 20, growth: 2, status: null },
+                    spd: { val: 40, growth: 4, status: null }, acc: { val: 88, growth: 0, status: null },
+                    types: ['normal'],
+                    abilities: [
+                        { name: 'Tackle', levelRequired: 1, description: 'Classic body-check. Simple and steady.' }
+                    ],
+                    specialMove: { name: 'Last Resort', levelRequired: 7, description: 'All-out Normal strike unleashed at higher levels.' },
+                    inventory: [],
+                    statuses: [], turnTaken: false
+                }
+            ];
+            const initialEnemies = [{ id: 'e1', name: 'Zubat', level: 3, hp: 80, atk: { val: 20, growth: 0, status: null }, spAtk: { val: 25, growth: 0, status: null }, def: { val: 15, growth: 0, status: null }, spDef: { val: 15, growth: 0, status: null }, spd: { val: 40, growth: 0, status: null }, acc: { val: 85, growth: 0, status: null }, types: ['poison', 'flying'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e2', name: 'Rattata', level: 4, hp: 95, atk: { val: 22, growth: 0, status: null }, spAtk: { val: 22, growth: 0, status: null }, def: { val: 18, growth: 0, status: null }, spDef: { val: 18, growth: 0, status: null }, spd: { val: 35, growth: 0, status: null }, acc: { val: 90, growth: 0, status: null }, types: ['normal'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e3', name: 'Geodude', level: 5, hp: 130, atk: { val: 28, growth: 0, status: null }, spAtk: { val: 15, growth: 0, status: null }, def: { val: 40, growth: 0, status: null }, spDef: { val: 40, growth: 0, status: null }, spd: { val: 15, growth: 0, status: null }, acc: { val: 80, growth: 0, status: null }, types: ['rock', 'ground'], turnTaken: false, statuses: [{ name: 'Paralyzed', duration: 1, statEffect: { spd: 'negative' } }], inventory: [] }];
 
             // --- Helpers ---
             function getStatusIcon(statusName) {
                 const iconMap = { 'Burned': 'fa-fire text-red-500', 'Poisoned': 'fa-skull-crossbones text-purple-500', 'Paralyzed': 'fa-bolt text-yellow-400', 'Asleep': 'fa-dizzy text-blue-400', 'Frozen': 'fa-snowflake text-cyan-300', 'ATK Up': 'fa-angle-double-up text-green-400', 'DEF Up': 'fa-angle-double-up text-green-400' };
                 return `<i class="fas ${iconMap[statusName] || 'fa-question-circle text-gray-400'}"></i>`;
             }
-		function getPokemonIcon(name) {
-		    var id = POKEMON_IDS[name];
-		    if (!id) {
-		        return '<i class="fas fa-user-circle fa-3x text-gray-400"></i>';
-		    }
-		    return '<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' +
-		           id +
-		           '.png" alt="' + name + '" class="w-full h-full object-contain">';
-		}	
-		function getItemIcon(name) {
-		    var iconName = ALL_ITEMS[name];
-		    if (!iconName) {
-		        return '<i class="fas fa-box-open icon"></i>';
-		    }
-		    return '<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/' +
-		           iconName +
-		           '.png" alt="' + name + '" class="item-icon">';
-		}
-		
-		function getTypeIcon(typeName) {
-		    var type = typeEffectiveness[typeName.toLowerCase()];
-		    if (!type) return '';
-		    return '<span class="type-icon type-' + typeName.toLowerCase() + '" title="' + type.name + '">' +
-		           type.name.substring(0, 2).toUpperCase() +
-		           '</span>';
-		}
+            function getPokemonIcon(name) {
+                var id = POKEMON_IDS[name];
+                if (!id) {
+                    return '<i class="fas fa-user-circle fa-3x text-gray-400"></i>';
+                }
+                return '<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' +
+                    id +
+                    '.png" alt="' + name + '" class="w-full h-full object-contain">';
+            }
+            function getItemIcon(name) {
+                var iconName = ALL_ITEMS[name];
+                if (!iconName) {
+                    return '<i class="fas fa-box-open icon"></i>';
+                }
+                return '<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/' +
+                    iconName +
+                    '.png" alt="' + name + '" class="item-icon">';
+            }
+
+            function getTypeIcon(typeName) {
+                var type = typeEffectiveness[typeName.toLowerCase()];
+                if (!type) return '';
+                return '<span class="type-icon type-' + typeName.toLowerCase() + '" title="' + type.name + '">' +
+                    type.name.substring(0, 2).toUpperCase() +
+                    '</span>';
+            }
             function getEffectiveStat(char, statName) {
                 if (!char[statName] && statName !== 'hp') return { value: 0, statusEffect: null };
                 let value = statName === 'hp' ? char.hp : char[statName].val;
@@ -737,12 +760,12 @@ $(document).on('click', '#moves-modal .close-button', () => closeModal && closeM
             }
 
             // --- View Management ---
-		function logAction(message) {
-		    const timestamp = new Date().toLocaleTimeString();
-		    ELS.logBox
-		        .val(`[${timestamp}] ${message}\n` + ELS.logBox.val())
-		        .scrollTop(0);
-		}
+            function logAction(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                ELS.logBox
+                    .val(`[${timestamp}] ${message}\n` + ELS.logBox.val())
+                    .scrollTop(0);
+            }
             function renderAll() { renderCharacters(); renderTurnOrder(); renderActionBoard(); }
             function renderCharacters() {
                 const playersHtml = players.map(p => {
@@ -779,65 +802,66 @@ $(document).on('click', '#moves-modal .close-button', () => closeModal && closeM
             function renderActionBoard() {
                 ELS.actionBoard.empty();
                 const activeChar = turnOrder[currentTurnIndex];
-			const isEnemyTurn = !!activeChar && enemies.some(e => e.id === activeChar.id);
+                const isEnemyTurn = !!activeChar && enemies.some(e => e.id === activeChar.id);
                 if (isDM) {
                     ELS.actionBoard.append(`
-                        <button id="dm-force-turn-btn" class="col-span-1 px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Force DM Turn"><i class="fas fa-crown"></i></button>
-                        <button id="dm-reset-turns-btn" class="col-span-1 px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="Reset All Turns"><i class="fas fa-redo"></i></button>
-                        <button id="dm-end-turn-btn" class="col-span-1 px-2 py-2 bg-purple-600 rounded-lg hover:bg-purple-700" title="End DM Turn"><i class="fas fa-forward"></i></button>
-                    `);
+                                <button id="dm-force-turn-btn" class="col-span-1 px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Force DM Turn"><i class="fas fa-crown"></i></button>
+                                <button id="dm-reset-turns-btn" class="col-span-1 px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="Reset All Turns"><i class="fas fa-redo"></i></button>
+                                <button id="dm-end-turn-btn" class="col-span-1 px-2 py-2 bg-purple-600 rounded-lg hover:bg-purple-700" title="End DM Turn"><i class="fas fa-forward"></i></button>
+                            `);
                     if (isEnemyTurn) {
-			    ELS.actionBoard.append(`
-			      <button id="moves-button" class="col-span-1 px-2 py-2 bg-blue-600 rounded-lg hover:bg-blue-700" title="Moves"><i class="fa-solid fa-wand-sparkles"></i></button>
-			      <button id="inventory-button" class="col-span-1 px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>
-			    `);			  }
+                        ELS.actionBoard.append(`
+                          <button id="moves-button" class="col-span-1 px-2 py-2 bg-blue-600 rounded-lg hover:bg-blue-700" title="Moves"><i class="fa-solid fa-wand-sparkles"></i></button>
+                          <button id="inventory-button" class="col-span-1 px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>
+                        `);
+                    }
                     $('#dm-force-turn-btn').on('click', () => {
-                         const dmIndex = turnOrder.findIndex(c => c.id === 'dm');
-                         if (dmIndex > -1) {
-                             currentTurnIndex = dmIndex;
-                             logAction("DM forced their turn.");
-                             renderAll();
-                         }
+                        const dmIndex = turnOrder.findIndex(c => c.id === 'dm');
+                        if (dmIndex > -1) {
+                            currentTurnIndex = dmIndex;
+                            logAction("DM forced their turn.");
+                            renderAll();
+                        }
                     });
                     $('#dm-reset-turns-btn').on('click', () => {
-                         currentTurnIndex = 0;
-                         players.forEach(p => p.turnTaken = false);
-                         enemies.forEach(e => e.turnTaken = false);
-                         logAction("DM reset all character turns.");
-                         renderAll();
+                        currentTurnIndex = 0;
+                        players.forEach(p => p.turnTaken = false);
+                        enemies.forEach(e => e.turnTaken = false);
+                        logAction("DM reset all character turns.");
+                        renderAll();
                     });
                     $('#dm-end-turn-btn').on('click', () => {
-                         logAction("DM ended their turn.");
-                         currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
-                         players.forEach(p => p.turnTaken = false);
-                         enemies.forEach(e => e.turnTaken = false);
-                         renderAll();
+                        logAction("DM ended their turn.");
+                        currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
+                        players.forEach(p => p.turnTaken = false);
+                        enemies.forEach(e => e.turnTaken = false);
+                        renderAll();
                     });
                 } else {
                     const isPlayerTurn = !isDMTurn && players.some(p => p.id === turnOrder[currentTurnIndex]?.id && p.id === currentPlayerId);
                     if (isPlayerTurn) {
-				ELS.actionBoard.append(`
-				    <button id="moves-button" class="px-2 py-2 bg-blue-600 rounded-lg hover:bg-blue-700" title="Moves"><i class="fa-solid fa-wand-sparkles"></i></button>
-				    <button id="inventory-button" class="px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>
-				    <button id="end-turn-button" class="px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="End Turn"><i class="fas fa-forward"></i></button>
-				`);
+                        ELS.actionBoard.append(`
+                            <button id="moves-button" class="px-2 py-2 bg-blue-600 rounded-lg hover:bg-blue-700" title="Moves"><i class="fa-solid fa-wand-sparkles"></i></button>
+                            <button id="inventory-button" class="px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>
+                            <button id="end-turn-button" class="px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="End Turn"><i class="fas fa-forward"></i></button>
+                        `);
                         $('#end-turn-button').on('click', () => {
-                             const previousChar = turnOrder[currentTurnIndex];
-                             if (previousChar) {
+                            const previousChar = turnOrder[currentTurnIndex];
+                            if (previousChar) {
                                 previousChar.turnTaken = true;
                                 logAction(`${previousChar.name} ended their turn.`);
-                             }
-                             currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
-                             renderAll();
+                            }
+                            currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
+                            renderAll();
                         });
                     } else {
-                         ELS.actionBoard.append(`<div class="col-span-3 text-center text-gray-400">Waiting for your turn...</div>`);
+                        ELS.actionBoard.append(`<div class="col-span-3 text-center text-gray-400">Waiting for your turn...</div>`);
                     }
                 }
             }
             // --- Game Logic ---
             function rollDie(sides, rollerType) { const roller = rollerType === 'player' ? (turnOrder[currentTurnIndex]?.name || "Player") : "DM"; const result = Math.floor(Math.random() * sides) + 1; ELS.diceDisplay.text(result).removeClass('dice-animate'); void ELS.diceDisplay[0].offsetWidth; ELS.diceDisplay.addClass('dice-animate'); logAction(`${roller} rolled a d${sides} and got ${result}.`); }
-            
+
             // --- Modals ---
             function openModal(modalId) { $(`#${modalId}-modal`).addClass('flex'); }
             function closeModal(modalId) { $(`#${modalId}-modal`).removeClass('flex'); }
@@ -847,98 +871,98 @@ $(document).on('click', '#moves-modal .close-button', () => closeModal && closeM
                 $('#attack-list').html(attacksHtml); openModal('attack');
             }
             function selectTargetsModal(attackName) { closeModal('attack'); $('#targets-modal-title').text(`Target for ${attackName}`); const targetsHtml = enemies.map(enemy => `<button class="target-btn w-full px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600" data-attack-name="${attackName}" data-target-name="${enemy.name}">${enemy.name}</button>`).join(''); $('#targets-list-container').html(targetsHtml); openModal('targets'); }
-     function openInventoryModal(targetId) {
-  let char = null;
-  if (targetId) {
-    char = players.find(p => p.id === targetId) || enemies.find(e => e.id === targetId);
-  } else if (isDM) {
-    const active = turnOrder[currentTurnIndex];
-    char = players.find(p => p.id === active?.id) || enemies.find(e => e.id === active?.id);
-  } else {
-    char = players.find(p => p.id === currentPlayerId);
-  }
-  if (!char) return;
+            function openInventoryModal(targetId) {
+                let char = null;
+                if (targetId) {
+                    char = players.find(p => p.id === targetId) || enemies.find(e => e.id === targetId);
+                } else if (isDM) {
+                    const active = turnOrder[currentTurnIndex];
+                    char = players.find(p => p.id === active?.id) || enemies.find(e => e.id === active?.id);
+                } else {
+                    char = players.find(p => p.id === currentPlayerId);
+                }
+                if (!char) return;
 
-  const isOwnerOnTurn = (!isDM && char.id === currentPlayerId);
-  const items = char.inventory || [];
+                const isOwnerOnTurn = (!isDM && char.id === currentPlayerId);
+                const items = char.inventory || [];
 
-  const inventoryHtml = items.length
-    ? items.map(item => {
-        const actions = isOwnerOnTurn
-          ? `<div class="space-x-2">
-               <button class="use-item-btn px-2 py-1 bg-blue-600 rounded-md text-xs" data-item="${item}">Use</button>
-               <button class="share-item-btn px-2 py-1 bg-green-600 rounded-md text-xs" data-item="${item}">Share</button>
-             </div>`
-          : '';
-        return `<li class="p-2 rounded-lg bg-gray-700 flex justify-between items-center">
-                  <span>${getItemIcon(item)}${item}</span>
-                  ${actions}
-                </li>`;
-      }).join('')
-    : '<li class="p-2 rounded-lg bg-gray-700 text-center text-xs text-gray-300">Empty</li>';
+                const inventoryHtml = items.length
+                    ? items.map(item => {
+                        const actions = isOwnerOnTurn
+                            ? `<div class="space-x-2">
+                       <button class="use-item-btn px-2 py-1 bg-blue-600 rounded-md text-xs" data-item="${item}">Use</button>
+                       <button class="share-item-btn px-2 py-1 bg-green-600 rounded-md text-xs" data-item="${item}">Share</button>
+                     </div>`
+                            : '';
+                        return `<li class="p-2 rounded-lg bg-gray-700 flex justify-between items-center">
+                          <span>${getItemIcon(item)}${item}</span>
+                          ${actions}
+                        </li>`;
+                    }).join('')
+                    : '<li class="p-2 rounded-lg bg-gray-700 text-center text-xs text-gray-300">Empty</li>';
 
-  $('#inventory-list').html(inventoryHtml);
-  openModal('inventory');
-}
+                $('#inventory-list').html(inventoryHtml);
+                openModal('inventory');
+            }
             function openUseItemModal(item) { closeModal('inventory'); $('#share-item-title').text(`Use "${item}" on...`); const allTargets = [...players, ...enemies]; const listHtml = allTargets.map(target => `<button class="confirm-use-item-btn w-full px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500" data-item="${item}" data-target-id="${target.id}">${target.name}</button>`).join(''); $('#share-player-list').html(listHtml); openModal('share-item'); }
             function openShareModal(item) { closeModal('inventory'); itemToShare = item; const listHtml = players.filter(p => p.id !== currentPlayerId).map(p => `<button class="confirm-share-btn w-full px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500" data-recipient-id="${p.id}">${p.name}</button>`).join(''); $('#share-player-list').html(listHtml); $('#share-item-title').text(`Share "${item}" with...`); openModal('share-item'); }
-		function openMovesModal(targetId) {
-		  // Pick which character to show:
-		  // - If DM and there's an active turn, show that active character (enemy or player)
-		  // - Else show the current player
-		  let char = null;
-		  if (targetId) {
-		    char = players.find(p => p.id === targetId) || enemies.find(e => e.id === targetId);
-		  } else if (isDM) {
-		    const active = turnOrder[currentTurnIndex];
-		    char = players.find(p => p.id === active?.id) || enemies.find(e => e.id === active?.id);
-		  } else {
-		    char = players.find(p => p.id === currentPlayerId);
-		  }
-		  if (!char) return;
-		
-		  // SPECIAL MOVE (top)
-		  const s = char.specialMove;
-		  if (s) {
-		    const specialCanUse = (char.level >= (s.levelRequired ?? 1));
-		    $('#special-move').html(`
-		      <div class="move-card ${specialCanUse ? '' : 'move-locked'}">
-		        <div class="flex items-center justify-between">
-		          <span class="move-title">⭐ ${s.name}</span>
-		          <span class="move-meta">Req Lvl ${s.levelRequired ?? 1}</span>
-		        </div>
-		        <p class="text-sm mt-1">${s.description || ''}</p>
-		      </div>
-		    `);
-		  } else {
-		    $('#special-move').empty();
-		  }
-		
-		  // REGULAR MOVES (sorted by required level asc)
-			const sortedMoves = [...(char.abilities || [])].sort((a, b) => {
-			  const al = Number.isFinite(+a.levelRequired) ? +a.levelRequired : 1;
-			  const bl = Number.isFinite(+b.levelRequired) ? +b.levelRequired : 1;
-			  return (al - bl) || a.name.localeCompare(b.name);
-			});
-		  const movesHtml = sortedMoves.map(m => {
-		    const canUse = char.level >= (m.levelRequired ?? 1);
-		    return `
-		      <li>
-		        <div class="move-card ${canUse ? '' : 'move-locked'}">
-		          <div class="flex items-center justify-between">
-		            <span class="move-title">${m.name}</span>
-		            <span class="move-meta">Req Lvl ${m.levelRequired ?? 1}</span>
-		          </div>
-		          <p class="text-sm mt-1">${m.description || ''}</p>
-		        </div>
-		      </li>
-		    `;
-		  }).join('');
-		  $('#moves-list').html(movesHtml);
-		
-		  // Open
-		openModal('moves');
-		}
+            function openMovesModal(targetId) {
+                // Pick which character to show:
+                // - If DM and there's an active turn, show that active character (enemy or player)
+                // - Else show the current player
+                let char = null;
+                if (targetId) {
+                    char = players.find(p => p.id === targetId) || enemies.find(e => e.id === targetId);
+                } else if (isDM) {
+                    const active = turnOrder[currentTurnIndex];
+                    char = players.find(p => p.id === active?.id) || enemies.find(e => e.id === active?.id);
+                } else {
+                    char = players.find(p => p.id === currentPlayerId);
+                }
+                if (!char) return;
+
+                // SPECIAL MOVE (top)
+                const s = char.specialMove;
+                if (s) {
+                    const specialCanUse = (char.level >= (s.levelRequired ?? 1));
+                    $('#special-move').html(`
+                      <div class="move-card ${specialCanUse ? '' : 'move-locked'}">
+                        <div class="flex items-center justify-between">
+                          <span class="move-title">⭐ ${s.name}</span>
+                          <span class="move-meta">Req Lvl ${s.levelRequired ?? 1}</span>
+                        </div>
+                        <p class="text-sm mt-1">${s.description || ''}</p>
+                      </div>
+                    `);
+                } else {
+                    $('#special-move').empty();
+                }
+
+                // REGULAR MOVES (sorted by required level asc)
+                const sortedMoves = [...(char.abilities || [])].sort((a, b) => {
+                    const al = Number.isFinite(+a.levelRequired) ? +a.levelRequired : 1;
+                    const bl = Number.isFinite(+b.levelRequired) ? +b.levelRequired : 1;
+                    return (al - bl) || a.name.localeCompare(b.name);
+                });
+                const movesHtml = sortedMoves.map(m => {
+                    const canUse = char.level >= (m.levelRequired ?? 1);
+                    return `
+                      <li>
+                        <div class="move-card ${canUse ? '' : 'move-locked'}">
+                          <div class="flex items-center justify-between">
+                            <span class="move-title">${m.name}</span>
+                            <span class="move-meta">Req Lvl ${m.levelRequired ?? 1}</span>
+                          </div>
+                          <p class="text-sm mt-1">${m.description || ''}</p>
+                        </div>
+                      </li>
+                    `;
+                }).join('');
+                $('#moves-list').html(movesHtml);
+
+                // Open
+                openModal('moves');
+            }
 
 
             // --- PROFILE MODAL ---
@@ -960,8 +984,9 @@ $(document).on('click', '#moves-modal .close-button', () => closeModal && closeM
                     const baseValue = (statKey === 'hp') ? char.hp : char[statKey].val;
                     let statClass = '';
                     if (statusEffect === 'positive') statClass = 'stat-positive'; else if (statusEffect === 'negative') statClass = 'stat-negative';
-				const valueDisplay = isDM
-				  ? `<input type="number" class="dm-stat-input w-16 px-1 text-center bg-gray-700 rounded border border-gray-600" value="${baseValue}" data-stat-key="${statKey}">`
+				const valueDisplay = (isDM || (!isDM && char.id === currentPlayerId))
+				  ? `<input type="number" class="dm-stat-input w-16 px-1 text-center bg-gray-700 rounded border border-gray-600"
+				            value="${baseValue}" data-stat-key="${statKey}" min="0">`
 				  : `<span class="${statClass} ml-1">${effectiveValue}</span>`;
                     const growthDisplay = isDM && statKey !== 'hp' && char[statKey] ? `(+${char[statKey].growth})` : '';
                     return `<div class="stat-box col-span-1"><i class="${statIcons[statKey]} icon"></i><span>${statNames[statKey]}:</span> ${valueDisplay} ${growthDisplay}</div>`;
@@ -1011,34 +1036,34 @@ $(document).on('click', '#moves-modal .close-button', () => closeModal && closeM
 
             // --- Event Handlers ---
             $('#dice-buttons').on('click', 'button', function () { rollDie($(this).data('sides'), isDM ? 'dm' : 'player'); });
-            
+
             // Only allow DM to use turn checkboxes and enemy removal buttons
-		// Replace the whole "Only allow DM to use turn checkboxes and enemy removal buttons" block with this:
-		
-		ELS.playersList.add(ELS.enemiesList).on('change', '.turn-taken-checkbox', function () {
-		  if (!isDM) return;
-		  const charId = $(this).data('id');
-		  const isChecked = $(this).is(':checked');
-		  const char = players.find(p => p.id === charId) || enemies.find(e => e.id === charId);
-		  if (char) {
-		    char.turnTaken = isChecked;
-		    logAction(`DM set ${char.name} turn: ${isChecked}`);
-		  }
-		});
-		
-		ELS.enemiesList.on('click', '.remove-enemy-btn', function () {
-		  if (!isDM) return;
-		  const enemyId = $(this).data('id');
-		  const removed = enemies.find(e => e.id === enemyId);
-		  enemies = enemies.filter(e => e.id !== enemyId);
-		  renderAll();
-		  if (removed) logAction(`DM removed ${removed.name}.`);
-		});
+            // Replace the whole "Only allow DM to use turn checkboxes and enemy removal buttons" block with this:
+
+            ELS.playersList.add(ELS.enemiesList).on('change', '.turn-taken-checkbox', function () {
+                if (!isDM) return;
+                const charId = $(this).data('id');
+                const isChecked = $(this).is(':checked');
+                const char = players.find(p => p.id === charId) || enemies.find(e => e.id === charId);
+                if (char) {
+                    char.turnTaken = isChecked;
+                    logAction(`DM set ${char.name} turn: ${isChecked}`);
+                }
+            });
+
+            ELS.enemiesList.on('click', '.remove-enemy-btn', function () {
+                if (!isDM) return;
+                const enemyId = $(this).data('id');
+                const removed = enemies.find(e => e.id === enemyId);
+                enemies = enemies.filter(e => e.id !== enemyId);
+                renderAll();
+                if (removed) logAction(`DM removed ${removed.name}.`);
+            });
 
             $('.modal').on('click', '.close-button', function () { $(this).closest('.modal').removeClass('flex'); });
-            
+
             // Player Actions
-            ELS.actionBoard.on('click', '#end-turn-button', function() {
+            ELS.actionBoard.on('click', '#end-turn-button', function () {
                 const previousChar = turnOrder[currentTurnIndex];
                 if (previousChar) {
                     previousChar.turnTaken = true;
@@ -1047,50 +1072,50 @@ $(document).on('click', '#moves-modal .close-button', () => closeModal && closeM
                 currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
                 renderAll();
             });
-            ELS.actionBoard.on('click', '#dm-end-turn-btn', function() {
+            ELS.actionBoard.on('click', '#dm-end-turn-btn', function () {
                 logAction("DM ended their turn.");
                 currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
                 players.forEach(p => p.turnTaken = false);
                 enemies.forEach(e => e.turnTaken = false);
                 renderAll();
             });
-            
+
             $('#submit-new-enemy').on('click', function () {
-  if (!isDM) return;
+                if (!isDM) return;
 
-  const species = $('#pokemon-select').val();
-  const name = ($('#enemy-name-input').val() || '').trim() || species;
-  const level = parseInt($('#enemy-level-input').val(), 10) || 1;
-  const hp    = parseInt($('#enemy-hp-input').val(), 10) || 50;
+                const species = $('#pokemon-select').val();
+                const name = ($('#enemy-name-input').val() || '').trim() || species;
+                const level = parseInt($('#enemy-level-input').val(), 10) || 1;
+                const hp = parseInt($('#enemy-hp-input').val(), 10) || 50;
 
-  const tpl = SPECIES_TEMPLATES[species] || {
-    types: ['normal'],
-    baseStats: { atk:20, spAtk:20, def:20, spDef:20, spd:20, acc:85 }
-  };
+                const tpl = SPECIES_TEMPLATES[species] || {
+                    types: ['normal'],
+                    baseStats: { atk: 20, spAtk: 20, def: 20, spDef: 20, spd: 20, acc: 85 }
+                };
 
-  const id = 'e' + Date.now();
-  const mk = (v) => ({ val: v, growth: 0, status: null });
+                const id = 'e' + Date.now();
+                const mk = (v) => ({ val: v, growth: 0, status: null });
 
-  const newEnemy = {
-    id, name, level, hp,
-    atk: mk(tpl.baseStats.atk),
-    spAtk: mk(tpl.baseStats.spAtk),
-    def: mk(tpl.baseStats.def),
-    spDef: mk(tpl.baseStats.spDef),
-    spd: mk(tpl.baseStats.spd),
-    acc: mk(tpl.baseStats.acc),
-    types: tpl.types,
-    turnTaken: false,
-    statuses: [],
-    inventory: []
-  };
+                const newEnemy = {
+                    id, name, level, hp,
+                    atk: mk(tpl.baseStats.atk),
+                    spAtk: mk(tpl.baseStats.spAtk),
+                    def: mk(tpl.baseStats.def),
+                    spDef: mk(tpl.baseStats.spDef),
+                    spd: mk(tpl.baseStats.spd),
+                    acc: mk(tpl.baseStats.acc),
+                    types: tpl.types,
+                    turnTaken: false,
+                    statuses: [],
+                    inventory: []
+                };
 
-  enemies.push(newEnemy);
-  closeModal('add-enemy');
-  renderAll();
-  logAction(`DM added enemy ${name} (Lvl ${level}).`);
-  $('#enemy-name-input').val('');
-});
+                enemies.push(newEnemy);
+                closeModal('add-enemy');
+                renderAll();
+                logAction(`DM added enemy ${name} (Lvl ${level}).`);
+                $('#enemy-name-input').val('');
+            });
 
 
 
@@ -1100,21 +1125,39 @@ $(document).on('click', '#moves-modal .close-button', () => closeModal && closeM
             $('#share-player-list').on('click', '.confirm-use-item-btn', function () { const item = $(this).data('item'); const targetId = $(this).data('target-id'); const user = players.find(p => p.id === currentPlayerId); const target = players.find(p => p.id === targetId) || enemies.find(e => e.id === targetId); if (user && target) logAction(`${user.name} used ${item} on ${target.name}.`); closeModal('share-item'); });
             $('#share-player-list').on('click', '.confirm-share-btn', function () { const recipientId = $(this).data('recipient-id'); const sharer = players.find(p => p.id === currentPlayerId); const recipient = players.find(p => p.id === recipientId); if (sharer && recipient && itemToShare) { sharer.inventory = sharer.inventory.filter(i => i !== itemToShare); recipient.inventory.push(itemToShare); logAction(`${sharer.name} shared ${itemToShare} with ${recipient.name}.`); closeModal('share-item'); } });
             ELS.playersList.add(ELS.enemiesList).on('click', '.portrait', function () { openProfileModal($(this).data('id')); });
-		$('#add-enemy-button').on('click', () => { 
-		  if (!isDM) return; 
-		  openModal('add-enemy'); 
-		});
+            $('#add-enemy-button').on('click', () => {
+                if (!isDM) return;
+                openModal('add-enemy');
+            });
             $('#log-header').on('click', () => { $('#log-content').toggleClass('hidden'); $('#log-toggle-icon').text($('#log-content').hasClass('hidden') ? '+' : '-'); });
-            $('body').on('click', '.character-select-btn', function() { const selectedId = $(this).data('id'); startGame(selectedId); });
-            $('#reset-selections-btn').on('click', function() { localStorage.removeItem('pokeQuestTakenRoles'); location.reload(); });
+            $('body').on('click', '.character-select-btn', function () { const selectedId = $(this).data('id'); startGame(selectedId); });
+            $('#reset-selections-btn').on('click', function () { localStorage.removeItem('pokeQuestTakenRoles'); location.reload(); });
 
 
             // --- DM PROFILE EDITING HANDLERS ---
-            $('#profile-stats').on('change', '.dm-stat-input', function () {
-                const charId = $('#profile-modal').attr('data-char-id'); const statKey = $(this).data('stat-key'); const newValue = parseInt($(this).val(), 10);
-                const char = players.find(p => p.id === charId) || enemies.find(e => e.id === charId);
-                if (char && !isNaN(newValue)) { if (statKey === 'hp') { char.hp = newValue; } else { char[statKey].val = newValue; } logAction(`DM set ${char.name}'s ${statKey.toUpperCase()} to ${newValue}.`); renderAll(); }
-            });
+			$('#profile-stats').on('change', '.dm-stat-input', function () {
+			  const charId = $('#profile-modal').attr('data-char-id');
+			  const statKey = $(this).data('stat-key');
+			  const newValue = parseInt($(this).val(), 10);
+			  const char = players.find(p => p.id === charId) || enemies.find(e => e.id === charId);
+			  if (!char || isNaN(newValue)) return;
+			
+			  // Permission: DM can edit anyone; players can edit ONLY their own character
+			  if (!isDM && char.id !== currentPlayerId) {
+			    // revert the input to the current value if not allowed
+			    $(this).val(statKey === 'hp' ? char.hp : (char[statKey]?.val ?? 0));
+			    return;
+			  }
+			
+			  if (statKey === 'hp') { char.hp = newValue; }
+			  else if (char[statKey]) { char[statKey].val = newValue; }
+			
+			  const who = isDM ? 'DM' : (players.find(p => p.id === currentPlayerId)?.name || 'Player');
+			  logAction(`${who} set ${char.name}'s ${statKey.toUpperCase()} to ${newValue}.`);
+			
+			  renderAll();            // refresh lists/turn order
+			  openProfileModal(charId); // refresh the open profile with updated values
+			});
             $('#dm-add-item-btn').on('click', function () {
                 const charId = $('#profile-modal').attr('data-char-id'); const char = players.find(p => p.id === charId) || enemies.find(e => e.id === charId);
                 const itemToAdd = $('#dm-add-item-select').val();
@@ -1131,8 +1174,8 @@ $(document).on('click', '#moves-modal .close-button', () => closeModal && closeM
                 if (char && statusName && !isNaN(duration)) {
                     if (!char.statuses) char.statuses = [];
                     if (char.statuses.find(s => s.name === statusName)) return; // Avoid duplicate statuses
-				const statusTemplate = ALL_STATUSES.find(s => s.name === statusName);
-				const newStatus = { ...statusTemplate, duration };
+                    const statusTemplate = ALL_STATUSES.find(s => s.name === statusName);
+                    const newStatus = { ...statusTemplate, duration };
                     char.statuses.push(newStatus); logAction(`DM applied ${statusName} to ${char.name} for ${duration} turns.`); openProfileModal(charId); renderAll();
                 }
             });
@@ -1144,7 +1187,7 @@ $(document).on('click', '#moves-modal .close-button', () => closeModal && closeM
             $('#profile-inventory').on('click', '.dm-transfer-item-btn', function () {
                 transferPayload.sourceId = $('#profile-modal').attr('data-char-id'); transferPayload.itemName = $(this).data('item-name');
                 $('#transfer-item-title').text(`Transfer ${transferPayload.itemName} to...`);
-			const allTargets = [...players, ...enemies].filter(c => c.id !== transferPayload.sourceId);
+                const allTargets = [...players, ...enemies].filter(c => c.id !== transferPayload.sourceId);
                 const targetsHtml = allTargets.map(target => `<button class="confirm-transfer-btn w-full px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500" data-target-id="${target.id}">${target.name}</button>`).join('');
                 $('#transfer-target-list').html(targetsHtml); openModal('transfer-item');
             });
@@ -1170,12 +1213,12 @@ $(document).on('click', '#moves-modal .close-button', () => closeModal && closeM
                 const playersHtml = initialPlayers.map(p => {
                     const isTaken = takenRoles.includes(p.id);
                     return `
-                        <button class="character-select-btn text-center p-2 rounded-lg ${isTaken ? 'bg-gray-700 cursor-not-allowed opacity-50' : 'bg-gray-800 hover:bg-gray-600'}" data-id="${p.id}" ${isTaken ? 'disabled' : ''}>
-                            <div class="portrait mx-auto !w-24 !h-24">${getPokemonIcon(p.name)}</div>
-                            <p class="mt-2 text-sm">${p.name}</p>
-                            ${isTaken ? '<p class="text-red-500 text-xs mt-1">Taken</p>' : ''}
-                        </button>
-                    `;
+                                <button class="character-select-btn text-center p-2 rounded-lg ${isTaken ? 'bg-gray-700 cursor-not-allowed opacity-50' : 'bg-gray-800 hover:bg-gray-600'}" data-id="${p.id}" ${isTaken ? 'disabled' : ''}>
+                                    <div class="portrait mx-auto !w-24 !h-24">${getPokemonIcon(p.name)}</div>
+                                    <p class="mt-2 text-sm">${p.name}</p>
+                                    ${isTaken ? '<p class="text-red-500 text-xs mt-1">Taken</p>' : ''}
+                                </button>
+                            `;
                 }).join('');
                 $('#character-list').html(playersHtml);
 
@@ -1190,14 +1233,14 @@ $(document).on('click', '#moves-modal .close-button', () => closeModal && closeM
 
             function startGame(selectedId) {
                 let takenRoles = JSON.parse(localStorage.getItem('pokeQuestTakenRoles')) || [];
-                if(!takenRoles.includes(selectedId)) {
+                if (!takenRoles.includes(selectedId)) {
                     takenRoles.push(selectedId);
                     localStorage.setItem('pokeQuestTakenRoles', JSON.stringify(takenRoles));
                 }
 
                 $('#character-selection-screen').addClass('hidden');
                 $('#game-board').removeClass('hidden');
-                
+
                 if (selectedId === 'dm') {
                     isDM = true;
                     currentPlayerId = null;
@@ -1210,10 +1253,10 @@ $(document).on('click', '#moves-modal .close-button', () => closeModal && closeM
                     const playerName = initialPlayers.find(p => p.id === currentPlayerId)?.name || 'Player';
                     ELS.playerIdentity.text(`You are: ${playerName}`);
                 }
-                
+
                 players = [...initialPlayers];
                 enemies = [...initialEnemies];
-                
+
                 logAction("Welcome to PokéQuest! The game has started.");
                 renderAll();
             }
