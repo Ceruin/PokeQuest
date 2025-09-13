@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- https://stackoverflow.com/questions/53433938/how-do-i-allow-a-cors-requests-in-my-google-script -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PokéQuest</title>
@@ -707,23 +708,27 @@
             ];
             const initialEnemies = [{ id: 'e1', name: 'Zubat', level: 3, hp: 80, atk: { val: 20, growth: 0, status: null }, spAtk: { val: 25, growth: 0, status: null }, def: { val: 15, growth: 0, status: null }, spDef: { val: 15, growth: 0, status: null }, spd: { val: 40, growth: 0, status: null }, acc: { val: 85, growth: 0, status: null }, types: ['poison', 'flying'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e2', name: 'Rattata', level: 4, hp: 95, atk: { val: 22, growth: 0, status: null }, spAtk: { val: 22, growth: 0, status: null }, def: { val: 18, growth: 0, status: null }, spDef: { val: 18, growth: 0, status: null }, spd: { val: 35, growth: 0, status: null }, acc: { val: 90, growth: 0, status: null }, types: ['normal'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e3', name: 'Geodude', level: 5, hp: 130, atk: { val: 28, growth: 0, status: null }, spAtk: { val: 15, growth: 0, status: null }, def: { val: 40, growth: 0, status: null }, spDef: { val: 40, growth: 0, status: null }, spd: { val: 15, growth: 0, status: null }, acc: { val: 80, growth: 0, status: null }, types: ['rock', 'ground'], turnTaken: false, statuses: [{ name: 'Paralyzed', duration: 1, statEffect: { spd: 'negative' } }], inventory: [] }];
 
-		const scriptURL = "https://script.google.com/macros/s/AKfycbxogTgsLP3c3Pu7IRDSi-ssdHCX2Kfwa52ObXkJvldpueOfQU7dAJpfqKLSj0kmZDJI/exec";
+		const scriptURL = "https://script.google.com/macros/s/AKfycbwzfFa98fK7kqJ8JjhcAEnLcqElDy1clU24DT4xLYh47S2HMV0_LZH1zVwp7XlynZ3k/exec";
         	function loadPlayers() {
 			return $.getJSON(scriptURL + "?sheet=Players");
-		}
-		
+		}	
 		
 		function loadEnemies() {
 			return $.getJSON(scriptURL + "?sheet=Enemies");
-		}
-		
+		}		
 		
 		function updateSheetCell(sheet, row, col, value) {
 			return $.ajax({
 			url: scriptURL,
 			type: "POST",
-			contentType: "application/json",
-			data: JSON.stringify({ action: "update", sheet, row, col, value })
+			contentType: "text/plain;charset=utf-8",
+			data: JSON.stringify({ action: "update", sheet, row, col, value }),
+			success: function(res) {
+        			console.log("Update success:", res);
+        		},
+            	error: function(err) {
+                		console.error("Update failed:", err);
+            	}
 			});
 		}
 		
@@ -732,12 +737,19 @@
 			return $.ajax({
 			url: scriptURL,
 			type: "POST",
-			contentType: "application/json",
-			data: JSON.stringify({ action: "log", message, actor, target })
+			contentType: "text/plain;charset=utf-8",
+			data: JSON.stringify({ action: "log", message, actor, target }),
+			success: function(res) {
+        			console.log("Update success:", res);
+        		},
+            	error: function(err) {
+                		console.error("Update failed:", err);
+            	}
 			});
 		}
-
-
+		
+		updateSheetCell("Player", 10, 1, 6);	
+			
             // --- Helpers ---
             function getStatusIcon(statusName) {
                 const iconMap = { 'Burned': 'fa-fire text-red-500', 'Poisoned': 'fa-skull-crossbones text-purple-500', 'Paralyzed': 'fa-bolt text-yellow-400', 'Asleep': 'fa-dizzy text-blue-400', 'Frozen': 'fa-snowflake text-cyan-300', 'ATK Up': 'fa-angle-double-up text-green-400', 'DEF Up': 'fa-angle-double-up text-green-400' };
