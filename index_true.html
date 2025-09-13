@@ -542,7 +542,7 @@
                 <div id="profile-portrait" class="portrait mx-auto"></div>
                 <div class="flex flex-col items-center mt-4">
                     <p id="profile-types" class="text-sm text-center mb-2"></p>
-                    <div id="profile-stats" class="grid grid-cols-2 gap-2 mt-4 w-full"></div>
+                    <div id="profile-stats" class="gap-2 mt-4 w-full"></div>
                     <h3 class="text-lg mt-4 mb-2">Inventory</h3>
                     <div id="profile-inventory" class="w-full space-y-2"></div>
                     <h3 class="text-lg mt-4 mb-2">Statuses</h3>
@@ -707,6 +707,37 @@
             ];
             const initialEnemies = [{ id: 'e1', name: 'Zubat', level: 3, hp: 80, atk: { val: 20, growth: 0, status: null }, spAtk: { val: 25, growth: 0, status: null }, def: { val: 15, growth: 0, status: null }, spDef: { val: 15, growth: 0, status: null }, spd: { val: 40, growth: 0, status: null }, acc: { val: 85, growth: 0, status: null }, types: ['poison', 'flying'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e2', name: 'Rattata', level: 4, hp: 95, atk: { val: 22, growth: 0, status: null }, spAtk: { val: 22, growth: 0, status: null }, def: { val: 18, growth: 0, status: null }, spDef: { val: 18, growth: 0, status: null }, spd: { val: 35, growth: 0, status: null }, acc: { val: 90, growth: 0, status: null }, types: ['normal'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e3', name: 'Geodude', level: 5, hp: 130, atk: { val: 28, growth: 0, status: null }, spAtk: { val: 15, growth: 0, status: null }, def: { val: 40, growth: 0, status: null }, spDef: { val: 40, growth: 0, status: null }, spd: { val: 15, growth: 0, status: null }, acc: { val: 80, growth: 0, status: null }, types: ['rock', 'ground'], turnTaken: false, statuses: [{ name: 'Paralyzed', duration: 1, statEffect: { spd: 'negative' } }], inventory: [] }];
 
+		const scriptURL = "https://script.google.com/macros/s/AKfycbxogTgsLP3c3Pu7IRDSi-ssdHCX2Kfwa52ObXkJvldpueOfQU7dAJpfqKLSj0kmZDJI/exec";
+        	function loadPlayers() {
+			return $.getJSON(scriptURL + "?sheet=Players");
+		}
+		
+		
+		function loadEnemies() {
+			return $.getJSON(scriptURL + "?sheet=Enemies");
+		}
+		
+		
+		function updateSheetCell(sheet, row, col, value) {
+			return $.ajax({
+			url: scriptURL,
+			type: "POST",
+			contentType: "application/json",
+			data: JSON.stringify({ action: "update", sheet, row, col, value })
+			});
+		}
+		
+		
+		function logAction(message, actor, target) {
+			return $.ajax({
+			url: scriptURL,
+			type: "POST",
+			contentType: "application/json",
+			data: JSON.stringify({ action: "log", message, actor, target })
+			});
+		}
+
+
             // --- Helpers ---
             function getStatusIcon(statusName) {
                 const iconMap = { 'Burned': 'fa-fire text-red-500', 'Poisoned': 'fa-skull-crossbones text-purple-500', 'Paralyzed': 'fa-bolt text-yellow-400', 'Asleep': 'fa-dizzy text-blue-400', 'Frozen': 'fa-snowflake text-cyan-300', 'ATK Up': 'fa-angle-double-up text-green-400', 'DEF Up': 'fa-angle-double-up text-green-400' };
@@ -768,19 +799,33 @@
             }
             function renderAll() { renderCharacters(); renderTurnOrder(); renderActionBoard(); }
             function renderCharacters() {
-                const playersHtml = players.map(p => {
-                    const glowClass = hasNegativeStatus(p) ? 'negative-status-glow' : '';
-                    const dmControls = isDM ? `<div class="flex items-center space-x-2"></div>` : '';
-                    return `<div class="flex items-center space-x-2"><div class="portrait ${glowClass}" data-id="${p.id}">${getPokemonIcon(p.name)}</div><div class="flex-grow"><h3>${p.name} (Lvl ${p.level})</h3><span class="text-xs">HP: ${p.hp}</span>${dmControls}</div></div>`;
-                }).join('');
-                ELS.playersList.html(playersHtml);
-
-                const enemiesHtml = enemies.map(e => {
-                    const glowClass = hasNegativeStatus(e) ? 'negative-status-glow' : '';
-                    const dmControls = isDM ? `<div class="flex justify-end items-center space-x-2"><button class="remove-enemy-btn px-2 py-1 bg-red-600 rounded-md text-xs" data-id="${e.id}">X</button></div>` : '';
-                    return `<div class="flex items-center space-x-2"><div class="flex-grow text-right"><h3>${e.name} (Lvl ${e.level})</h3><div class="flex justify-end items-center space-x-2"><span class="text-xs">HP: ${e.hp}</span>${dmControls}</div></div><div class="portrait ${glowClass}" data-id="${e.id}">${getPokemonIcon(e.name)}</div></div>`;
-                }).join('');
-                ELS.enemiesList.html(enemiesHtml);
+			const playersHtml = players.map(p => {
+			const glowClass = hasNegativeStatus(p) ? 'negative-status-glow' : '';
+			return `<div class="flex items-center space-x-2">
+			<div class="portrait ${glowClass}" data-id="${p.id}">${getPokemonIcon(p.name)}</div>
+			<div class="flex-grow">
+			<h3>${p.name} (Lvl ${p.level})</h3>
+			<span class="text-xs">HP: ${p.hp}</span>
+			</div>
+			</div>`;
+			}).join('');
+			ELS.playersList.html(playersHtml);
+			
+			
+			const enemiesHtml = enemies.map(e => {
+			const glowClass = hasNegativeStatus(e) ? 'negative-status-glow' : '';
+			const levelText = isDM ? `(Lvl ${e.level})` : '';
+			const hpText = isDM ? `<span class="text-xs">HP: ${e.hp}</span>` : '';
+			const dmControls = isDM ? `<div class="flex justify-end items-center space-x-2"><button class="remove-enemy-btn px-2 py-1 bg-red-600 rounded-md text-xs" data-id="${e.id}">X</button></div>` : '';
+			return `<div class="flex items-center space-x-2">
+			<div class="flex-grow text-right">
+			<h3>${e.name} ${levelText}</h3>
+			<div class="flex justify-end items-center space-x-2">${hpText}${dmControls}</div>
+			</div>
+			<div class="portrait ${glowClass}" data-id="${e.id}">${getPokemonIcon(e.name)}</div>
+			</div>`;
+			}).join('');
+			ELS.enemiesList.html(enemiesHtml);
             }
             function renderTurnOrder() {
                 turnOrder = [...players, ...enemies].sort((a, b) => getEffectiveStat(b, 'spd').value - getEffectiveStat(a, 'spd').value);
@@ -967,72 +1012,85 @@
 
             // --- PROFILE MODAL ---
             function openProfileModal(id) {
-                const char = players.find(p => p.id === id) || enemies.find(e => e.id === id);
-                if (!char) return;
-
-                $('#profile-modal').attr('data-char-id', id);
-                $('#profile-name').text(`${char.name} (Lvl ${char.level})`);
-                $('#profile-portrait').html(getPokemonIcon(char.name));
-
-                $('#profile-types').html(`Type: ${char.types.map(t => getTypeIcon(t)).join('')}`);
-
-                // STATS
-                const statNames = { hp: 'HP', atk: 'ATK', spAtk: 'SP.A', def: 'DEF', spDef: 'SP.D', spd: 'SPD', acc: 'AC' };
-                const statIcons = { hp: 'fas fa-heart text-red-500', atk: 'fas fa-khanda text-orange-400', spAtk: 'fas fa-magic text-purple-400', def: 'fas fa-shield-alt text-blue-400', spDef: 'fas fa-shield-virus text-blue-400', spd: 'fas fa-running text-green-400', acc: 'fas fa-crosshairs text-yellow-300' };
-                const statsHtml = Object.keys(statNames).map(statKey => {
-                    const { value: effectiveValue, statusEffect } = getEffectiveStat(char, statKey);
-                    const baseValue = (statKey === 'hp') ? char.hp : char[statKey].val;
-                    let statClass = '';
-                    if (statusEffect === 'positive') statClass = 'stat-positive'; else if (statusEffect === 'negative') statClass = 'stat-negative';
-				const valueDisplay = (isDM || (!isDM && char.id === currentPlayerId))
-				  ? `<input type="number" class="dm-stat-input w-16 px-1 text-center bg-gray-700 rounded border border-gray-600"
-				            value="${baseValue}" data-stat-key="${statKey}" min="0">`
-				  : `<span class="${statClass} ml-1">${effectiveValue}</span>`;
-                    const growthDisplay = isDM && statKey !== 'hp' && char[statKey] ? `(+${char[statKey].growth})` : '';
-                    return `<div class="stat-box col-span-1"><i class="${statIcons[statKey]} icon"></i><span>${statNames[statKey]}:</span> ${valueDisplay} ${growthDisplay}</div>`;
-                }).join('');
-                $('#profile-stats').html(statsHtml);
-
-                // INVENTORY
-                const inventoryHtml = (char.inventory || []).map((item, index) => {
-                    const dmButtons = isDM ? `<div class="space-x-1"><button class="dm-transfer-item-btn px-2 py-1 bg-blue-600 rounded text-xs" data-item-name="${item}"><i class="fas fa-exchange-alt"></i></button><button class="dm-remove-item-btn px-2 py-1 bg-red-600 rounded text-xs" data-item-index="${index}"><i class="fas fa-times"></i></button></div>` : '';
-                    return `<div class="p-1 rounded bg-gray-800 flex justify-between items-center text-xs"><span>${getItemIcon(item)}${item}</span>${dmButtons}</div>`;
-                }).join('');
-                $('#profile-inventory').html(inventoryHtml || '<p class="text-xs text-gray-500 text-center">Empty</p>');
-
-                // STATUSES
-                const statusesHtml = (char.statuses || []).map((s, index) => {
-                    const dmButton = isDM ? `<button class="dm-remove-status-btn ml-2 text-red-500" data-status-index="${index}">&times;</button>` : '';
-                    return `<span class="px-2 py-1 bg-gray-800 text-xs rounded-full flex items-center">${getStatusIcon(s.name)} ${s.name} (${s.duration})${dmButton}</span>`;
-                }).join('')
-                $('#profile-statuses').html(statusesHtml || '<p class="text-xs text-gray-500 text-center">None</p>');
-
-                // TYPE EFFECTIVENESS (RESTORED)
-                const typeInfoContainer = $('#type-info');
-                let strengthsHtml = '', weaknessesHtml = '', immunitiesHtml = '';
-                char.types.forEach(type => {
-                    const typeData = typeEffectiveness[type.toLowerCase()];
-                    if (!typeData) return;
-                    if (typeData.strengths.length > 0) strengthsHtml += `<p class="text-sm font-bold mt-2">${typeData.name} Strong Against:</p><div class="flex flex-wrap gap-1">${typeData.strengths.map(s => getTypeIcon(s)).join('')}</div>`;
-                    if (typeData.weaknesses.length > 0) weaknessesHtml += `<p class="text-sm font-bold mt-2">${typeData.name} Weak Against:</p><div class="flex flex-wrap gap-1">${typeData.weaknesses.map(w => getTypeIcon(w)).join('')}</div>`;
-                    if (typeData.immunities && typeData.immunities.length > 0) immunitiesHtml += `<p class="text-sm font-bold mt-2">${typeData.name} Immune To:</p><div class="flex flex-wrap gap-1">${typeData.immunities.map(i => getTypeIcon(i)).join('')}</div>`;
-                });
-                if (strengthsHtml || weaknessesHtml || immunitiesHtml) {
-                    typeInfoContainer.html(`<h3 class="text-lg mt-4 mb-2 text-center border-t border-gray-600 pt-2">Type Effectiveness</h3>${strengthsHtml}${weaknessesHtml}${immunitiesHtml}`);
-                } else {
-                    typeInfoContainer.html('');
-                }
-
-                // DM CONTROLS
-                if (isDM) {
-                    $('#dm-profile-edit').removeClass('hidden');
-                    $('#dm-add-item-select').html(Object.keys(ALL_ITEMS).map(i => `<option value="${i}">${i}</option>`).join(''));
-                    $('#dm-add-status-select').html(ALL_STATUSES.map(s => `<option value="${s.name}">${s.name}</option>`).join(''));
-                } else {
-                    $('#dm-profile-edit').addClass('hidden');
-                }
-                openModal('profile');
-            }
+		    const char = players.find(p => p.id === id) || enemies.find(e => e.id === id);
+		    if (!char) return;
+		
+		    $('#profile-modal').attr('data-char-id', id);
+		    $('#profile-name').text(`${char.name} (Lvl ${char.level})`);
+		    $('#profile-portrait').html(getPokemonIcon(char.name));
+		
+		    $('#profile-types').html(`Type: ${char.types.map(t => getTypeIcon(t)).join('')}`);
+		
+		    // STATS
+		    const statNames = { hp: 'HP', atk: 'ATK', spAtk: 'SP.A', def: 'DEF', spDef: 'SP.D', spd: 'SPD', acc: 'AC' };
+		    const statIcons = { hp: 'fas fa-heart text-red-500', atk: 'fas fa-khanda text-orange-400', spAtk: 'fas fa-magic text-purple-400', def: 'fas fa-shield-alt text-blue-400', spDef: 'fas fa-shield-virus text-blue-400', spd: 'fas fa-running text-green-400', acc: 'fas fa-crosshairs text-yellow-300' };
+		    const statsHtml = Object.keys(statNames).map(statKey => {
+		        const { value: effectiveValue, statusEffect } = getEffectiveStat(char, statKey);
+		        const baseValue = (statKey === 'hp') ? char.hp : char[statKey].val;
+		        let statClass = '';
+		        if (statusEffect === 'positive') statClass = 'stat-positive'; else if (statusEffect === 'negative') statClass = 'stat-negative';
+		        const valueDisplay = (isDM || (!isDM && char.id === currentPlayerId))
+		          ? `<input type="number" class="dm-stat-input w-16 px-1 text-center bg-gray-700 rounded border border-gray-600"
+		                    value="${baseValue}" data-stat-key="${statKey}" min="0">`
+		          : `<span class="${statClass} ml-1">${effectiveValue}</span>`;
+		        const growthDisplay = isDM && statKey !== 'hp' && char[statKey] ? `(+${char[statKey].growth})` : '';
+		        return `<div class="stat-box col-span-1"><i class="${statIcons[statKey]} icon"></i><span>${statNames[statKey]}:</span> ${valueDisplay} ${growthDisplay}</div>`;
+		    }).join('');
+		    $('#profile-stats')
+    			 .addClass('grid grid-cols-2')
+		      .html(statsHtml);
+		
+		    // INVENTORY
+		    const inventoryHtml = (char.inventory || []).map((item, index) => {
+		        const dmButtons = isDM ? `<div class="space-x-1"><button class="dm-transfer-item-btn px-2 py-1 bg-blue-600 rounded text-xs" data-item-name="${item}"><i class="fas fa-exchange-alt"></i></button><button class="dm-remove-item-btn px-2 py-1 bg-red-600 rounded text-xs" data-item-index="${index}"><i class="fas fa-times"></i></button></div>` : '';
+		        return `<div class="p-1 rounded bg-gray-800 flex justify-between items-center text-xs"><span>${getItemIcon(item)}${item}</span>${dmButtons}</div>`;
+		    }).join('');
+		    $('#profile-inventory').html(inventoryHtml || '<p class="text-xs text-gray-500 text-center">Empty</p>');
+		
+		    // STATUSES
+		    const statusesHtml = (char.statuses || []).map((s, index) => {
+		        const dmButton = isDM ? `<button class="dm-remove-status-btn ml-2 text-red-500" data-status-index="${index}">&times;</button>` : '';
+		        return `<span class="px-2 py-1 bg-gray-800 text-xs rounded-full flex items-center">${getStatusIcon(s.name)} ${s.name} (${s.duration})${dmButton}</span>`;
+		    }).join('');
+		    $('#profile-statuses').html(statusesHtml || '<p class="text-xs text-gray-500 text-center">None</p>');
+		
+		    // TYPE EFFECTIVENESS (RESTORED)
+		    const typeInfoContainer = $('#type-info');
+		    let strengthsHtml = '', weaknessesHtml = '', immunitiesHtml = '';
+		    char.types.forEach(type => {
+		        const typeData = typeEffectiveness[type.toLowerCase()];
+		        if (!typeData) return;
+		        if (typeData.strengths.length > 0) strengthsHtml += `<p class="text-sm font-bold mt-2">${typeData.name} Strong Against:</p><div class="flex flex-wrap gap-1">${typeData.strengths.map(s => getTypeIcon(s)).join('')}</div>`;
+		        if (typeData.weaknesses.length > 0) weaknessesHtml += `<p class="text-sm font-bold mt-2">${typeData.name} Weak Against:</p><div class="flex flex-wrap gap-1">${typeData.weaknesses.map(w => getTypeIcon(w)).join('')}</div>`;
+		        if (typeData.immunities && typeData.immunities.length > 0) immunitiesHtml += `<p class="text-sm font-bold mt-2">${typeData.name} Immune To:</p><div class="flex flex-wrap gap-1">${typeData.immunities.map(i => getTypeIcon(i)).join('')}</div>`;
+		    });
+		    if (strengthsHtml || weaknessesHtml || immunitiesHtml) {
+		        typeInfoContainer.html(`<h3 class="text-lg mt-4 mb-2 text-center border-t border-gray-600 pt-2">Type Effectiveness</h3>${strengthsHtml}${weaknessesHtml}${immunitiesHtml}`);
+		    } else {
+		        typeInfoContainer.html('');
+		    }
+		
+		    // DM CONTROLS
+		    if (isDM) {
+		        $('#dm-profile-edit').removeClass('hidden');
+		        $('#dm-add-item-select').html(Object.keys(ALL_ITEMS).map(i => `<option value="${i}">${i}</option>`).join(''));
+		        $('#dm-add-status-select').html(ALL_STATUSES.map(s => `<option value="${s.name}">${s.name}</option>`).join(''));
+		    } else {
+		        $('#dm-profile-edit').addClass('hidden');
+		    }
+		
+		    const isEnemy = enemies.some(e => e.id === id);
+		    if (isEnemy && !isDM) {
+		        $('#profile-name').text(char.name);
+		        $('#profile-portrait').html(getPokemonIcon(char.name));
+		        $('#profile-stats').removeClass('grid grid-cols-2').html('<p class="text-xs text-gray-500 text-center">Hidden</p>');
+		        $('#profile-inventory').html('<p class="text-xs text-gray-500 text-center">Hidden</p>');
+		        $('#profile-statuses').html('<p class="text-xs text-gray-500 text-center">Hidden</p>');
+		        $('#dm-profile-edit').addClass('hidden');
+		    }
+		
+		    openModal('profile');
+		}
 
             // --- Event Handlers ---
             $('#dice-buttons').on('click', 'button', function () { rollDie($(this).data('sides'), isDM ? 'dm' : 'player'); });

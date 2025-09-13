@@ -547,6 +547,36 @@
 
     <script>
         $(function () {
+        	const scriptURL = "";
+        	function loadPlayers() {
+			return $.getJSON(scriptURL + "?sheet=Players");
+		}
+		
+		
+		function loadEnemies() {
+			return $.getJSON(scriptURL + "?sheet=Enemies");
+		}
+		
+		
+		function updateSheetCell(sheet, row, col, value) {
+			return $.ajax({
+			url: scriptURL,
+			type: "POST",
+			contentType: "application/json",
+			data: JSON.stringify({ action: "update", sheet, row, col, value })
+			});
+		}
+		
+		
+		function logAction(message, actor, target) {
+			return $.ajax({
+			url: scriptURL,
+			type: "POST",
+			contentType: "application/json",
+			data: JSON.stringify({ action: "log", message, actor, target })
+			});
+		}
+        
             // DOM Elements
             const ELS = {
                 body: $('body'), lobbyPage: $('#lobby-page'), dmWaitingRoom: $('#dm-waiting-room'), gameBoard: $('#game-board'), logBox: $('#log-box'), playersList: $('#players-list'), enemiesList: $('#enemies-list'), turnOrderContainer: $('#turn-order-container'), currentTurnDisplay: $('#current-turn-display'), playerIdentity: $('#player-identity'), diceDisplay: $('#dice-display'), roomCodeDisplay: $('#room-code-display'), waitingPlayerList: $('#waiting-player-list'), saveFileInput: $('#save-file-input'), playPauseBtn: $('#play-pause-button i'), lobbyWarning: $('#lobby-warning'), musicOptionsToggle: $('#music-options-toggle'),
