@@ -1,56 +1,398 @@
+/*******************************
+ * PokeQuest DB – Public API (Apps Script)
+ * - PUBLIC_key mode (default): anyone who knows key="public" can read/write.
+ * - OPEN mode: no key required at all (⚠️ ultra-risky).
+ *******************************/
+
 // === CONFIG ===
 const DB_ID = "1_unjOJXldmY6DHr3eVZ_dIQVFxGERA9MKxXSALuvaiI";
 
+// "PUBLIC_KEY" (default)  -> requests must include { key: "public" }
+// "OPEN"                  -> no key required, anyone can read/write
+const AUTH_MODE = "PUBLIC_KEY";
+
+// Optional: CORS (helpful if you call this from a web page on another domain)
+const ENABLE_CORS = true;
+const CORS_ALLOW_ORIGIN = "*"; // or your site origin
+
 // === HTML ENTRY ===
 function doGet() {
-  return HtmlService.createHtmlOutputFromFile('index')
-  .setTitle('PokeQuest DB')
-  .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  return HtmlService.createHtmlOutputFromFile('index')
+    .setTitle('PokeQuest DB')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-// === GENERIC HELPERS ===
-function getSheet(name) {
-  return SpreadsheetApp.openById(DB_ID).getSheetByName(name);
-}
+// -----------------------------------------
+// Users / Permissions
+// -----------------------------------------
+var users = [];
 
-// === LOAD DATA ===
-function getSheetData(sheetName) {
-  var sheet = getSheet(sheetName);
-  return sheet.getDataRange().getValues();
-}
+// PUBLIC KEY for anyone:
+User("anon", UNSAFE("public"), ALL);  // requests with key="public" are allowed
 
-// === UPDATE SINGLE CELL ===
-function updateCell(sheetName, row, col, value) {
-  var sheet = getSheet(sheetName);
-  sheet.getRange(row, col).setValue(value);
-  return { success: true };
-}
+// Example of a private admin (keep if you want; not required):
+// User("admin", "SUPERADMINTESTPWD123", ALL);
 
-// === APPEND LOG ENTRY ===
-function appendLog(message, actor, target) {
-  var sheet = getSheet("Log");
-  sheet.appendRow([new Date(), actor || "", target || "", message]);
-  return { success: true };
-}
+// -----------------------------------------
+// HTTP entrypoint
+// -----------------------------------------
 
-// === API ENDPOINT ===
-function doPost(e) {
-  try {
-    var req = JSON.parse(e.postData.contents);
-
-    if (req.action === "update") {
-      return ContentService.createTextOutput(
-      JSON.stringify(updateCell(req.sheet, req.row, req.col, req.value))
-    ).setMimeType(ContentService.MimeType.JSON);
-    }
-    if (req.action === "log") {
-      return ContentService.createTextOutput(
-      JSON.stringify(appendLog(req.message, req.actor, req.target))
-    ).setMimeType(ContentService.MimeType.JSON);
-    }
-    } catch (err) {
-      return ContentService.createTextOutput(
-      JSON.stringify({ success: false, error: err.message })
-    ).setMimeType(ContentService.MimeType.JSON);
+/**
+ * Handles CORS preflight requests (OPTIONS).
+ * This function is essential for allowing cross-origin requests from web apps.
+ */
+function doOptions(e) {
+  Logger.log("doOptions function triggered.");
+  if (!ENABLE_CORS) {
+    // If CORS is disabled in settings, return a standard response without CORS headers.
+    Logger.log("CORS is disabled, returning standard response.");
+    return ContentService.createTextOutput();
   }
+  Logger.log("CORS is enabled, returning headers.");
+  return ContentService.createTextOutput()
+    .addHttpHeader('Access-Control-Allow-Origin', CORS_ALLOW_ORIGIN)
+    .addHttpHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+    .addHttpHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
+
+function doPost(request) {
+  Logger.log("doPost function triggered.");
+  try {
+    var requestData = JSON.parse(request.postData.contents);
+  } catch (e) {
+    Logger.log("Error parsing POST payload: " + e.message);
+    return httpResponse(error(400, "invalid_post_payload", {
+      payload: request.postData && request.postData.contents,
+      type: request.postData && request.postData.type,
+      message: e && e.message
+    }));
+  }
+
+  // Batch or single
+  if (Array.isArray(requestData)) {
+    Logger.log("Handling batch request with " + requestData.length + " items.");
+    var result = requestData.map(handleRequest);
+    return httpResponse(result);
+  }
+
+  Logger.log("Handling single request.");
+  return httpResponse(handleRequest(requestData));
+}
+
+// -----------------------------------------
+// Core request handler
+// -----------------------------------------
+function handleRequest(params) {
+  const ss = SpreadsheetApp.openById(DB_ID);
+
+  const sheetName = (params.sheet || "").toString().trim();
+  const _id = params.id == null ? null : +params.id;
+  const method = (params["method"] || "GET").toUpperCase();
+  const key = params.key || "";
+
+  // Auth
+  if (!authAllowed(key, sheetName, method)) {
+    return error(401, "unauthorized", { mode: AUTH_MODE });
+  }
+
+  // In PUBLIC_KEY mode we keep the "strong key" check for non-GET methods,
+  // but UNSAFE("public") keys pass automatically per isStrongKey().
+  if (AUTH_MODE === "PUBLIC_KEY" && method !== "GET" && !isStrongKey(key)) {
+    return error(401, "weak_key", {
+      message:
+        "Key must be strong or flagged UNSAFE. For public access, send key='public'."
+    });
+  }
+
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    return error(404, "sheet_not_found", { sheet: sheetName });
+  }
+
+  if (_id != null && _id <= 1) {
+    return error(400, "row_index_invalid", { _id: _id });
+  }
+
+  const payload = params["payload"];
+
+  switch (method) {
+    case "GET":
+      return _id != null
+        ? handleGetSingleRow(sheet, _id)
+        : handleGetMultipleRows(sheet, params);
+
+    case "POST":
+      return handlePost(sheet, payload);
+
+    case "PUT":
+      return handlePut(sheet, _id, payload);
+
+    case "DELETE":
+      return handleDelete(sheet, _id);
+
+    default:
+      return error(404, "unknown_method", { method: method });
+  }
+}
+
+// -----------------------------------------
+// CRUD
+// -----------------------------------------
+function handleGetSingleRow(sheet, _id) {
+  const lastColumn = sheet.getLastColumn();
+  const headers = getHeaders(sheet);
+
+  if (_id > sheet.getLastRow()) {
+    return error(404, "row_not_found", { _id: _id });
+  }
+
+  const rowData = sheet.getRange(_id, 1, 1, lastColumn).getValues()[0];
+  const result = mapRowToObject(rowData, _id, headers);
+
+  if (!result) {
+    return error(404, "row_not_found", { _id: _id });
+  }
+
+  return data(200, result);
+}
+
+function handleGetMultipleRows(sheet, params) {
+  const lastColumn = sheet.getLastColumn();
+  const headers = getHeaders(sheet);
+
+  const firstRow = 2; // data starts at row 2 (row 1 = headers)
+  const lastRow = sheet.getLastRow();
+  const total = Math.max(lastRow - firstRow + 1, 0);
+  const limit = params.limit != null ? +params.limit : total;
+
+  const isAsc =
+    typeof params.order !== "string" || params.order.toLowerCase() !== "desc";
+
+  if (isNaN(limit) || limit < 0) {
+    return error(404, "invalid_limit", { limit: limit });
+  }
+
+  var firstRowInPage = isAsc ? firstRow : lastRow - limit + 1;
+
+  if (params.start_id != null) {
+    const start_id = +params.start_id;
+
+    if (start_id < firstRow || start_id > lastRow) {
+      return error(404, "start_id_out_of_range", { start_id: start_id });
+    }
+
+    firstRowInPage = start_id - (isAsc ? 0 : limit - 1);
+  }
+
+  const lastRowInPage = Math.min(firstRowInPage + limit - 1, lastRow);
+  firstRowInPage = Math.max(firstRowInPage, firstRow);
+
+  if (firstRowInPage > lastRowInPage) {
+    return data(200, []);
+  }
+
+  const rows = sheet
+    .getRange(firstRowInPage, 1, lastRowInPage - firstRowInPage + 1, lastColumn)
+    .getValues()
+    .map(function(item, index) {
+      return mapRowToObject(item, firstRowInPage + index, headers);
+    })
+    .filter(isTruthy);
+
+  if (!isAsc) rows.reverse();
+
+  var next = isAsc ? lastRowInPage + 1 : firstRowInPage - 1;
+  if (next < firstRow || next > lastRow) next = undefined;
+
+  return data(200, rows, { next: next });
+}
+
+function handlePost(sheet, payload) {
+  const headers = getHeaders(sheet);
+  const row = mapObjectToRow(payload || {}, headers);
+  sheet.appendRow(row);
+  const newId = sheet.getLastRow();
+  return data(201, { _id: newId });
+}
+
+function handlePut(sheet, _id, payload) {
+  if (_id == null) {
+    return error(400, "row_id_missing", {});
+  }
+  if (!payload || typeof payload !== "object") {
+    return error(400, "invalid_payload", { payload });
+  }
+
+  const headers = getHeaders(sheet);
+  const lastCol = sheet.getLastColumn();
+
+  for (const [k, v] of Object.entries(payload)) {
+    const idx = headers.findIndex(h => h === k);
+    if (idx === -1) continue; // ignore unknown columns
+    // setValue over the target cell
+    sheet.getRange(_id, idx + 1, 1, 1).setValue(v);
+  }
+
+  // Return the updated row
+  const rowData = sheet.getRange(_id, 1, 1, lastCol).getValues()[0];
+  const result = mapRowToObject(rowData, _id, headers);
+  return data(200, result);
+}
+
+function handleDelete(sheet, _id) {
+  if (_id == null) {
+    return error(400, "row_id_missing", {});
+  }
+  if (_id <= 1) {
+    return error(400, "cannot_delete_header", { _id });
+  }
+  const lastCol = sheet.getLastColumn();
+  // Clear content of the entire row (keeps row index stable)
+  sheet.getRange(_id, 1, 1, lastCol).clearContent();
+  return data(204, null);
+}
+
+// -----------------------------------------
+// HTTP utils (+ optional CORS)
+// -----------------------------------------
+function httpResponse(obj) {
+  const out = ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+  
+  // If CORS is enabled in the config, add the access control header.
+if (ENABLE_CORS) {
+    out.addHttpHeader('Access-Control-Allow-Origin', CORS_ALLOW_ORIGIN);
+    out.addHttpHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+    out.addHttpHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+  }
+  return out;
+}
+
+function error(status, code, details) {
+  return { status: status, error: { code: code, details: details } };
+}
+
+function data(status, data, params) {
+  params = params || {};
+  const result = { status: status, data: data };
+  for (var key in params) if (params.hasOwnProperty(key)) result[key] = params[key];
+  return result;
+}
+
+// -----------------------------------------
+// Utils
+// -----------------------------------------
+function getHeaders(sheet) {
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  for (var i = headers.length - 1; i >= 0; i--) {
+    if (!isEmpty(headers[i])) return headers.slice(0, i + 1);
+  }
+  return [];
+}
+
+function isTruthy(x) { return !!x; }
+
+function isEmpty(item) {
+  return item === "" || item == null;
+}
+
+function find(array, predicate) {
+  if (!Array.isArray(array)) return;
+  for (var i = 0; i < array.length; i++) {
+    if (predicate(array[i])) return array[i];
+  }
+}
+
+function mapObjectToRow(object, headers) {
+  return headers.map(function(column) {
+    if (isEmpty(column)) return "";
+    if (object[column] === undefined) return "";
+    return object[column];
+  });
+}
+
+function mapRowToObject(row, _id, headers) {
+  if (row.every(isEmpty)) return null;
+  const result = { _id: _id };
+  for (var i = 0; i < headers.length; i++) {
+    if (!isEmpty(headers[i])) result[headers[i]] = row[i];
+  }
+  return result;
+}
+
+// -----------------------------------------
+// Permissions & security
+// -----------------------------------------
+function User(name, key, permissions) {
+  users.push({ name: name, key: key, permissions: permissions });
+}
+
+function getUserWithKey(key) {
+  return find(users, function(x) {
+    return x.key === key || (typeof x.key === "object" && x.key.__unsafe === key);
+  });
+}
+
+function isStrongKey(key) {
+  const strongKeyRegex = new RegExp(
+    "^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[\\x20-\\x2F\\x3A-\\x40\\x5B-\\x60\\x7B-\\x7E])(?=.{8,})"
+  );
+  const user = getUserWithKey(key);
+  if (!user) return false;
+  // UNSAFE("...") always passes (used for the public key)
+  if (typeof user.key === "object" && user.key.__unsafe === key) return true;
+  return strongKeyRegex.test(user.key);
+}
+
+function getPermissions(user, spreadsheet) {
+  if (Array.isArray(user.permissions)) return user.permissions;
+  if (typeof user.permissions === "function") return user.permissions;
+
+  const keys = Object.keys(user.permissions || {});
+  for (var i = 0; i < keys.length; i++) {
+    if (keys[i].toLowerCase() === spreadsheet.toLowerCase()) {
+      return user.permissions[keys[i]];
+    }
+  }
+  return user.permissions && user.permissions["ALL"];
+}
+
+function hasAccess(key, spreadsheet, method) {
+  const user = getUserWithKey(key);
+  if (!user) return false;
+  const permission = getPermissions(user, spreadsheet);
+  if (!permission) return false;
+
+  return !!(
+    permission === ALL ||
+    permission.toString() === method ||
+    find(permission, function(x) { return x === ALL; }) ||
+    find(permission, function(x) { return x.toString() === method; })
+  );
+}
+
+// Master auth gate respecting AUTH_MODE
+function authAllowed(key, sheet, method) {
+  if (AUTH_MODE === "OPEN") {
+    return true; // no key required at all
+  }
+  // PUBLIC_KEY mode: require key and permission mapping
+  return hasAccess(key, sheet, method);
+}
+
+// -----------------------------------------
+// Permission tokens
+// -----------------------------------------
+function GET() {}
+function POST() {}
+function PUT() {}
+function DELETE() {}
+function ALL() {}
+function UNSAFE(key) { return { __unsafe: key }; }
+
+GET.toString = function() { return "GET"; };
+POST.toString = function() { return "POST"; };
+PUT.toString = function() { return "PUT"; };
+DELETE.toString = function() { return "DELETE"; };
+ALL.toString = function() { return "*"; };
+
