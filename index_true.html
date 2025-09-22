@@ -634,6 +634,10 @@ class PokeQuestApi {
     return $.ajax({
       url: this.scriptURL,
       type: "POST",
+      crossDomain: true,   
+      processData: false,
+      xhrFields: { withCredentials: false },
+      dataType: "text",
       contentType: "text/plain;charset=utf-8",
       data: JSON.stringify(payload)
     }).then(res => {
@@ -766,7 +770,7 @@ const api = new PokeQuestApi({
 //api.list("Player", { limit: 100 }).then(console.log);
 
 // READ one by row id (_id is the sheet row index)
-//api.get("Player", 2).then(console.log);
+api.get("Player", 2).then(console.log);
 
 // CREATE
 api.create("Player", { Id: 9, Name: "Ash", Type: "Player" }).then(console.log);
