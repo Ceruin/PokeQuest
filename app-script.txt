@@ -1,0 +1,56 @@
+// === CONFIG ===
+const DB_ID = "1_unjOJXldmY6DHr3eVZ_dIQVFxGERA9MKxXSALuvaiI";
+
+// === HTML ENTRY ===
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('index')
+  .setTitle('PokeQuest DB')
+  .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+// === GENERIC HELPERS ===
+function getSheet(name) {
+  return SpreadsheetApp.openById(DB_ID).getSheetByName(name);
+}
+
+// === LOAD DATA ===
+function getSheetData(sheetName) {
+  var sheet = getSheet(sheetName);
+  return sheet.getDataRange().getValues();
+}
+
+// === UPDATE SINGLE CELL ===
+function updateCell(sheetName, row, col, value) {
+  var sheet = getSheet(sheetName);
+  sheet.getRange(row, col).setValue(value);
+  return { success: true };
+}
+
+// === APPEND LOG ENTRY ===
+function appendLog(message, actor, target) {
+  var sheet = getSheet("Log");
+  sheet.appendRow([new Date(), actor || "", target || "", message]);
+  return { success: true };
+}
+
+// === API ENDPOINT ===
+function doPost(e) {
+  try {
+    var req = JSON.parse(e.postData.contents);
+
+    if (req.action === "update") {
+      return ContentService.createTextOutput(
+      JSON.stringify(updateCell(req.sheet, req.row, req.col, req.value))
+    ).setMimeType(ContentService.MimeType.JSON);
+    }
+    if (req.action === "log") {
+      return ContentService.createTextOutput(
+      JSON.stringify(appendLog(req.message, req.actor, req.target))
+    ).setMimeType(ContentService.MimeType.JSON);
+    }
+    } catch (err) {
+      return ContentService.createTextOutput(
+      JSON.stringify({ success: false, error: err.message })
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+}

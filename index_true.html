@@ -113,6 +113,10 @@
         body.dm-mode .dm-mode-visible {
             display: inline-flex !important;
         }
+        
+        body.dm-mode .dm-mode-visible-block {
+            display: flex !important;
+        }
 
         .dm-turn-visible {
             display: none;
@@ -492,11 +496,12 @@
             <!-- Center Column -->
             <div class="flex flex-col items-center space-y-8">
                 <div class="dice-display" id="dice-display">?</div>
-                <div class="container-box w-full p-4 text-center">
-                    <h2 class="text-xl mb-4">ACTION BOARD</h2>
+                <div class="container-box w-full p-4 text-center flex flex-col gap-4">
+                    <h2 class="text-xl">ACTION BOARD</h2>
                     <div id="action-board" class="grid grid-cols-3 gap-2">
                         <!-- Actions dynamically rendered here based on turn and role -->
                     </div>
+                     <button id="team-pouch-button" class="px-4 py-2 bg-yellow-600 rounded-lg shadow-md hover:bg-yellow-700 w-full"><i class="fas fa-briefcase mr-2"></i>Team Pouch</button>
                 </div>
                 <div class="container-box w-full p-4"><h2 class="text-xl text-center mb-4">ROLL DICE</h2><div id="dice-buttons" class="grid grid-cols-3 gap-2"><button data-sides="4" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D4</button><button data-sides="6" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D6</button><button data-sides="8" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D8</button><button data-sides="10" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D10</button><button data-sides="12" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D12</button><button data-sides="20" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D20</button></div></div>
                 <div class="container-box w-full p-4 flex-grow flex flex-col"><div id="log-header" class="log-header mb-2"><h2 class="text-xl text-center">LOG</h2><span id="log-toggle-icon" class="toggle-icon">+</span></div><div id="log-content" class="hidden"><textarea id="log-box" class="log-box w-full h-48" readonly>Log start...\n</textarea></div></div>
@@ -573,9 +578,206 @@
             <div id="transfer-target-list" class="space-y-2"></div>
         </div>
     </div>
+    
+    <!-- Team Pouch Modal -->
+    <div id="team-pouch-modal" class="modal">
+        <div class="modal-content container-box">
+            <span class="close-button">&times;</span>
+            <h2 class="text-xl text-center mb-4">TEAM POUCH</h2>
+            <div class="modal-scroll">
+                <div class="flex justify-center items-center mb-4">
+                    <i class="fas fa-coins text-yellow-400 fa-2x mr-2"></i>
+                    <span id="pouch-coins-display" class="text-2xl font-bold">0</span>
+                    <input type="number" id="dm-pouch-coins-input" class="dm-stat-input ml-2 w-24 hidden dm-mode-visible-block" value="0">
+                </div>
+                <h3 class="text-lg mt-4 mb-2 text-center">Items</h3>
+                <ul id="pouch-inventory-list" class="space-y-2"></ul>
+                <div id="dm-pouch-controls" class="hidden dm-mode-visible-block flex-col mt-4 border-t-2 border-gray-600 pt-4">
+                    <h3 class="text-lg text-center mb-2">DM Controls</h3>
+                    <div class="flex items-center space-x-2">
+                        <select id="dm-add-pouch-item-select" class="w-full px-2 py-1 rounded bg-gray-700 text-xs"></select>
+                        <button id="dm-add-pouch-item-btn" class="px-3 py-1 bg-green-600 rounded hover:bg-green-700 text-xs">Add Item</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transfer Item from Team Pouch Modal -->
+    <div id="transfer-from-pouch-modal" class="modal">
+        <div class="modal-content container-box">
+            <span class="close-button">&times;</span>
+            <h2 id="transfer-from-pouch-title" class="text-xl text-center mb-4">Transfer Item To...</h2>
+            <div id="transfer-from-pouch-player-list" class="space-y-2"></div>
+        </div>
+    </div>
 
     <script>
         $(function () {
+// Minimal helper to call your Apps Script
+class PokeQuestApi {
+  /**
+   * @param {{scriptURL:string, apiKey?:string}} options
+   */
+  constructor(options) {
+    if (!options || !options.scriptURL) throw new Error("scriptURL is required");
+    this.scriptURL = options.scriptURL;
+    this.apiKey = options.apiKey || "public"; // default for your public mode
+  }
+
+  /**
+   * Low-level POST wrapper
+   * @param {object|object[]} payload A single request or an array for batch
+   * @returns {Promise<any>}
+   */
+  _post(payload) {
+    return $.ajax({
+      url: this.scriptURL,
+      type: "POST",
+      contentType: "text/plain;charset=utf-8",
+      data: JSON.stringify(payload)
+    }).then(res => {
+      // If Apps Script returns a JSON string, parse it; otherwise trust jQuery
+      if (typeof res === "string") {
+        try { return JSON.parse(res); } catch { return res; }
+      }
+      return res;
+    });
+  }
+
+  /**
+   * Build request envelope with standard fields
+   */
+  _req(sheet, method, extra = {}) {
+    return Object.assign({
+      key: this.apiKey,
+      sheet: sheet,
+      method: method
+    }, extra);
+  }
+
+  /**
+   * List rows from a sheet (table)
+   * @param {string} sheet Sheet name (e.g., "Player")
+   * @param {{limit?:number, order?:'asc'|'desc', start_id?:number}} opts
+   * @returns {Promise<{status:number, data:any[], next?:number}>}
+   */
+  list(sheet, opts = {}) {
+    return this._post(this._req(sheet, "GET", {
+      limit: opts.limit,
+      order: (opts.order || "asc"),
+      start_id: opts.start_id
+    }));
+  }
+
+  /**
+   * Get a single row by its sheet row index (_id)
+   * @param {string} sheet
+   * @param {number} id Row index in the sheet (>=2)
+   */
+  get(sheet, id) {
+    return this._post(this._req(sheet, "GET", { id }));
+  }
+
+  /**
+   * Create (append) a new row. Keys in payload must match the sheet headers.
+   * @param {string} sheet
+   * @param {object} payload { ColumnName: value, ... }
+   */
+  create(sheet, payload) {
+    return this._post(this._req(sheet, "POST", { payload }));
+  }
+
+  /**
+   * Update specific columns in a row (by sheet row index)
+   * @param {string} sheet
+   * @param {number} id
+   * @param {object} payload { ColumnName: newValue, ... }
+   */
+  update(sheet, id, payload) {
+    return this._post(this._req(sheet, "PUT", { id, payload }));
+  }
+
+  /**
+   * Delete a row by id (clears cells on that row)
+   * @param {string} sheet
+   * @param {number} id
+   */
+  remove(sheet, id) {
+    return this._post(this._req(sheet, "DELETE", { id }));
+  }
+
+  /**
+   * Batch multiple operations in one HTTP request.
+   * @param {Array<{sheet:string, method:'GET'|'POST'|'PUT'|'DELETE', id?:number, payload?:object, limit?:number, order?:string, start_id?:number}>} ops
+   * @returns {Promise<Array<any>>}
+   *
+   * Example:
+   * api.batch([
+   *   { sheet:'Player', method:'GET', limit:100 },
+   *   { sheet:'Items', method:'POST', payload:{ Id: 3, Name:'Potion', Description:'Heals 20 HP'} }
+   * ])
+   */
+  batch(ops) {
+    const requests = ops.map(op => this._req(op.sheet, op.method, op));
+    return this._post(requests);
+  }
+}
+
+// Optional: convenience “table” models for your known sheets.
+// These just pin the sheet name so you don’t repeat it everywhere.
+class Table {
+  constructor(api, sheet) {
+    this.api = api;
+    this.sheet = sheet;
+  }
+  list(opts)   { return this.api.list(this.sheet, opts); }
+  get(id)      { return this.api.get(this.sheet, id); }
+  create(row)  { return this.api.create(this.sheet, row); }
+  update(id,p) { return this.api.update(this.sheet, id, p); }
+  remove(id)   { return this.api.remove(this.sheet, id); }
+}
+
+// Example registry using the sheets detected in your workbook
+function createPokeQuestDb(api) {
+  return {
+    Player:         new Table(api, "Player"),
+    Pokemon:        new Table(api, "Pokemon"),
+    Items:          new Table(api, "Items"),
+    Statuses:       new Table(api, "Statuses"),
+    Moves:          new Table(api, "Moves"),
+    Types:          new Table(api, "Types"),
+    PokemonTypes:   new Table(api, "PokemonTypes"),
+    PlayerPokemon:  new Table(api, "PlayerPokemon"),
+    PlayerItems:    new Table(api, "PlayerItems"),
+    PlayerStatuses: new Table(api, "PlayerStatuses"),
+    PlayerMoves:    new Table(api, "PlayerMoves"),
+    Log:            new Table(api, "Log"),
+  };
+}
+
+const api = new PokeQuestApi({
+  scriptURL: "https://script.google.com/macros/s/AKfycbxEfLxpt4VtIRlD9MBGrZVBeHtIUA6Y5WdaE7Q_RC70CZzkMwKYonL1-rP2z8uioOAi/exec",
+  apiKey: "public" // or your private/admin key
+});
+
+
+// READ (list all rows in a sheet)
+//api.list("Player", { limit: 100 }).then(console.log);
+
+// READ one by row id (_id is the sheet row index)
+//api.get("Player", 2).then(console.log);
+
+// CREATE
+//api.create("Player", { Id: 1, Name: "Ash", Type: "Player" }).then(console.log);
+
+// UPDATE (by row id)
+//api.update("Player", 2, { Name: "Misty" }).then(console.log);
+
+// DELETE (by row id)
+//api.remove("Player", 2).then(console.log);
+
+        
             // Global delegated bindings so re-rendered buttons still work
             $(document)
                 .off('click', '#moves-button')
@@ -596,7 +798,9 @@
             let isDM = false, isDMTurn = false, currentPlayerId = null;
             let turnOrder = [], currentTurnIndex = 0;
             let players = [], enemies = [];
+            let teamPouch = { items: ['Potion', 'Revive Seed'], coins: 100 };
             let itemToShare = null;
+            let itemToTransferFromPouch = null;
             let transferPayload = { sourceId: null, itemName: null };
 
             // --- Master Data ---
@@ -624,6 +828,7 @@
                 'Potion': 'potion',
                 'Max Elixir': 'max-elixir',
                 'Escape Orb': 'escape-orb',
+                'Team Pouch': 'cherish-ball',
             };
             const ALL_STATUSES = [
                 { name: 'Burned', duration: -1, statEffect: { atk: 'negative' } },
@@ -648,7 +853,7 @@
                         { name: 'Quick Attack', levelRequired: 3, description: 'Swift Normal strike; often acts early.' }
                     ],
                     specialMove: { name: 'Volt Tackle', levelRequired: 7, description: 'High-power Electric charge. Risky but devastating.' },
-                    inventory: ['Oran Berry', 'Pecha Berry'],
+                    inventory: ['Oran Berry', 'Pecha Berry', 'Team Pouch'],
                     statuses: [], turnTaken: false
                 },
                 {
@@ -706,50 +911,8 @@
                     statuses: [], turnTaken: false
                 }
             ];
-            const initialEnemies = [{ id: 'e1', name: 'Zubat', level: 3, hp: 80, atk: { val: 20, growth: 0, status: null }, spAtk: { val: 25, growth: 0, status: null }, def: { val: 15, growth: 0, status: null }, spDef: { val: 15, growth: 0, status: null }, spd: { val: 40, growth: 0, status: null }, acc: { val: 85, growth: 0, status: null }, types: ['poison', 'flying'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e2', name: 'Rattata', level: 4, hp: 95, atk: { val: 22, growth: 0, status: null }, spAtk: { val: 22, growth: 0, status: null }, def: { val: 18, growth: 0, status: null }, spDef: { val: 18, growth: 0, status: null }, spd: { val: 35, growth: 0, status: null }, acc: { val: 90, growth: 0, status: null }, types: ['normal'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e3', name: 'Geodude', level: 5, hp: 130, atk: { val: 28, growth: 0, status: null }, spAtk: { val: 15, growth: 0, status: null }, def: { val: 40, growth: 0, status: null }, spDef: { val: 40, growth: 0, status: null }, spd: { val: 15, growth: 0, status: null }, acc: { val: 80, growth: 0, status: null }, types: ['rock', 'ground'], turnTaken: false, statuses: [{ name: 'Paralyzed', duration: 1, statEffect: { spd: 'negative' } }], inventory: [] }];
-
-		const scriptURL = "https://script.google.com/macros/s/AKfycbwzfFa98fK7kqJ8JjhcAEnLcqElDy1clU24DT4xLYh47S2HMV0_LZH1zVwp7XlynZ3k/exec";
-        	function loadPlayers() {
-			return $.getJSON(scriptURL + "?sheet=Players");
-		}	
-		
-		function loadEnemies() {
-			return $.getJSON(scriptURL + "?sheet=Enemies");
-		}		
-		
-		function updateSheetCell(sheet, row, col, value) {
-			return $.ajax({
-			url: scriptURL,
-			type: "POST",
-			contentType: "text/plain;charset=utf-8",
-			data: JSON.stringify({ action: "update", sheet, row, col, value }),
-			success: function(res) {
-        			console.log("Update success:", res);
-        		},
-            	error: function(err) {
-                		console.error("Update failed:", err);
-            	}
-			});
-		}
-		
-		
-		function logAction(message, actor, target) {
-			return $.ajax({
-			url: scriptURL,
-			type: "POST",
-			contentType: "text/plain;charset=utf-8",
-			data: JSON.stringify({ action: "log", message, actor, target }),
-			success: function(res) {
-        			console.log("Update success:", res);
-        		},
-            	error: function(err) {
-                		console.error("Update failed:", err);
-            	}
-			});
-		}
-		
-		updateSheetCell("Player", 10, 1, 6);	
-			
+            const initialEnemies = [{ id: 'e1', name: 'Zubat', level: 3, hp: 80, atk: { val: 20, growth: 0, status: null }, spAtk: { val: 25, growth: 0, status: null }, def: { val: 15, growth: 0, status: null }, spDef: { val: 15, growth: 0, status: null }, spd: { val: 40, growth: 0, status: null }, acc: { val: 85, growth: 0, status: null }, types: ['poison', 'flying'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e2', name: 'Rattata', level: 4, hp: 95, atk: { val: 22, growth: 0, status: null }, spAtk: { val: 22, growth: 0, status: null }, def: { val: 18, growth: 0, status: null }, spDef: { val: 18, growth: 0, status: null }, spd: { val: 35, growth: 0, status: null }, acc: { val: 90, growth: 0, status: null }, types: ['normal'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e3', name: 'Geodude', level: 5, hp: 130, atk: { val: 28, growth: 0, status: null }, spAtk: { val: 15, growth: 0, status: null }, def: { val: 40, growth: 0, status: null }, spDef: { val: 40, growth: 0, status: null }, spd: { val: 15, growth: 0, status: null }, acc: { val: 80, growth: 0, status: null }, types: ['rock', 'ground'], turnTaken: false, statuses: [{ name: 'Paralyzed', duration: 1, statEffect: { spd: 'negative' } }], inventory: [] }];		
+							
             // --- Helpers ---
             function getStatusIcon(statusName) {
                 const iconMap = { 'Burned': 'fa-fire text-red-500', 'Poisoned': 'fa-skull-crossbones text-purple-500', 'Paralyzed': 'fa-bolt text-yellow-400', 'Asleep': 'fa-dizzy text-blue-400', 'Frozen': 'fa-snowflake text-cyan-300', 'ATK Up': 'fa-angle-double-up text-green-400', 'DEF Up': 'fa-angle-double-up text-green-400' };
@@ -1020,6 +1183,53 @@
                 // Open
                 openModal('moves');
             }
+            
+            function openTeamPouchModal() {
+                const pouchHolder = players.find(p => p.inventory && p.inventory.includes('Team Pouch'));
+                const isPlayerTurn = players.some(p => p.id === turnOrder[currentTurnIndex]?.id && p.id === currentPlayerId);
+                const canManagePouch = isDM || (pouchHolder && pouchHolder.id === currentPlayerId && isPlayerTurn);
+
+                // Render coins
+                $('#pouch-coins-display').text(teamPouch.coins);
+                if (isDM) {
+                    $('#dm-pouch-coins-input').val(teamPouch.coins).show();
+                    $('#pouch-coins-display').hide();
+                    $('#dm-pouch-controls').show();
+                    $('#dm-add-pouch-item-select').html(Object.keys(ALL_ITEMS).filter(i => i !== 'Team Pouch').map(i => `<option value="${i}">${i}</option>`).join(''));
+                } else {
+                    $('#dm-pouch-coins-input').hide();
+                    $('#pouch-coins-display').show();
+                    $('#dm-pouch-controls').hide();
+                }
+
+                // Render items
+                const teamItemsHtml = teamPouch.items.length
+                    ? teamPouch.items.map(item => {
+                        const transferButton = canManagePouch
+                            ? `<button class="transfer-from-pouch-btn px-2 py-1 bg-blue-600 rounded-md text-xs" data-item="${item}" title="Transfer"><i class="fas fa-exchange-alt"></i></button>`
+                            : '';
+                        return `<li class="p-2 rounded-lg bg-gray-700 flex justify-between items-center">
+                                  <span>${getItemIcon(item)}${item}</span>
+                                  ${transferButton}
+                                </li>`;
+                    }).join('')
+                    : '<li class="p-2 rounded-lg bg-gray-700 text-center text-xs text-gray-300">Empty</li>';
+                $('#pouch-inventory-list').html(teamItemsHtml);
+
+                openModal('team-pouch');
+            }
+
+            function openTransferFromPouchModal(item) {
+                closeModal('team-pouch');
+                itemToTransferFromPouch = item;
+                const allTargets = [...players, ...enemies];
+                const listHtml = allTargets.map(p =>
+                    `<button class="confirm-transfer-from-pouch-btn w-full px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500" data-recipient-id="${p.id}">${p.name}</button>`
+                ).join('');
+                $('#transfer-from-pouch-player-list').html(listHtml);
+                $('#transfer-from-pouch-title').text(`Transfer "${item}" to...`);
+                openModal('transfer-from-pouch');
+            }
 
 
             // --- PROFILE MODAL ---
@@ -1131,6 +1341,9 @@
             });
 
             $('.modal').on('click', '.close-button', function () { $(this).closest('.modal').removeClass('flex'); });
+            
+            $('body').on('click', '#team-pouch-button', openTeamPouchModal);
+
 
             // Player Actions
             ELS.actionBoard.on('click', '#end-turn-button', function () {
@@ -1202,6 +1415,59 @@
             $('#log-header').on('click', () => { $('#log-content').toggleClass('hidden'); $('#log-toggle-icon').text($('#log-content').hasClass('hidden') ? '+' : '-'); });
             $('body').on('click', '.character-select-btn', function () { const selectedId = $(this).data('id'); startGame(selectedId); });
             $('#reset-selections-btn').on('click', function () { localStorage.removeItem('pokeQuestTakenRoles'); location.reload(); });
+
+            // --- TEAM POUCH HANDLERS ---
+            $('#dm-pouch-coins-input').on('change', function() {
+                if (!isDM) return;
+                const newAmount = parseInt($(this).val(), 10);
+                if (!isNaN(newAmount)) {
+                    teamPouch.coins = newAmount;
+                    logAction(`DM set team coins to ${newAmount}.`);
+                }
+            });
+
+            $('#dm-add-pouch-item-btn').on('click', function() {
+                if (!isDM) return;
+                const itemToAdd = $('#dm-add-pouch-item-select').val();
+                if (itemToAdd) {
+                    teamPouch.items.push(itemToAdd);
+                    logAction(`DM added ${itemToAdd} to the Team Pouch.`);
+                    openTeamPouchModal(); // Re-render the modal
+                }
+            });
+
+            $('#pouch-inventory-list').on('click', '.transfer-from-pouch-btn', function() {
+                const pouchHolder = players.find(p => p.inventory && p.inventory.includes('Team Pouch'));
+                const isPlayerTurn = players.some(p => p.id === turnOrder[currentTurnIndex]?.id && p.id === currentPlayerId);
+                const canManagePouch = isDM || (pouchHolder && pouchHolder.id === currentPlayerId && isPlayerTurn);
+                if (!canManagePouch) return;
+                const item = $(this).data('item');
+                openTransferFromPouchModal(item);
+            });
+
+            $('#transfer-from-pouch-player-list').on('click', '.confirm-transfer-from-pouch-btn', function() {
+                if (!itemToTransferFromPouch) return;
+                const pouchHolder = players.find(p => p.inventory && p.inventory.includes('Team Pouch'));
+                const isPlayerTurn = players.some(p => p.id === turnOrder[currentTurnIndex]?.id && p.id === currentPlayerId);
+                const canManagePouch = isDM || (pouchHolder && pouchHolder.id === currentPlayerId && isPlayerTurn);
+                if (!canManagePouch) return;
+
+                const recipientId = $(this).data('recipient-id');
+                const recipient = players.find(p => p.id === recipientId) || enemies.find(e => e.id === recipientId);
+                
+                if (recipient) {
+                    const itemIndex = teamPouch.items.indexOf(itemToTransferFromPouch);
+                    if (itemIndex > -1) {
+                        teamPouch.items.splice(itemIndex, 1);
+                        if (!recipient.inventory) recipient.inventory = [];
+                        recipient.inventory.push(itemToTransferFromPouch);
+                        const managerName = isDM ? 'DM' : pouchHolder.name;
+                        logAction(`${managerName} transferred ${itemToTransferFromPouch} to ${recipient.name} from the Team Pouch.`);
+                        itemToTransferFromPouch = null;
+                        closeModal('transfer-from-pouch');
+                    }
+                }
+            });
 
 
             // --- DM PROFILE EDITING HANDLERS ---
