@@ -635,10 +635,6 @@ class PokeQuestApi {
     return $.ajax({
       url: this.scriptURL,
       type: "POST",
-      crossDomain: true,   
-      processData: false,
-      xhrFields: { withCredentials: false },
-      dataType: "text",
       contentType: "text/plain;charset=utf-8",
       data: JSON.stringify(payload)
     }).then(res => {
