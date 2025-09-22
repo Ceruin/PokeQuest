@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- https://stackoverflow.com/questions/53433938/how-do-i-allow-a-cors-requests-in-my-google-script -->
-<!-- https://github.com/ziolko/spreadapi -->
+    <!-- https://stackoverflow.com/questions/53433938/how-do-i-allow-a-cors-requests-in-my-google-script -->
+    <!-- https://github.com/ziolko/spreadapi -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PokéQuest</title>
@@ -114,7 +114,7 @@
         body.dm-mode .dm-mode-visible {
             display: inline-flex !important;
         }
-        
+
         body.dm-mode .dm-mode-visible-block {
             display: flex !important;
         }
@@ -502,7 +502,7 @@
                     <div id="action-board" class="grid grid-cols-3 gap-2">
                         <!-- Actions dynamically rendered here based on turn and role -->
                     </div>
-                     <button id="team-pouch-button" class="px-4 py-2 bg-yellow-600 rounded-lg shadow-md hover:bg-yellow-700 w-full"><i class="fas fa-briefcase mr-2"></i>Team Pouch</button>
+                    <button id="team-pouch-button" class="px-4 py-2 bg-yellow-600 rounded-lg shadow-md hover:bg-yellow-700 w-full"><i class="fas fa-briefcase mr-2"></i>Team Pouch</button>
                 </div>
                 <div class="container-box w-full p-4"><h2 class="text-xl text-center mb-4">ROLL DICE</h2><div id="dice-buttons" class="grid grid-cols-3 gap-2"><button data-sides="4" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D4</button><button data-sides="6" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D6</button><button data-sides="8" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D8</button><button data-sides="10" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D10</button><button data-sides="12" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D12</button><button data-sides="20" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D20</button></div></div>
                 <div class="container-box w-full p-4 flex-grow flex flex-col"><div id="log-header" class="log-header mb-2"><h2 class="text-xl text-center">LOG</h2><span id="log-toggle-icon" class="toggle-icon">+</span></div><div id="log-content" class="hidden"><textarea id="log-box" class="log-box w-full h-48" readonly>Log start...\n</textarea></div></div>
@@ -579,7 +579,7 @@
             <div id="transfer-target-list" class="space-y-2"></div>
         </div>
     </div>
-    
+
     <!-- Team Pouch Modal -->
     <div id="team-pouch-modal" class="modal">
         <div class="modal-content container-box">
@@ -778,7 +778,7 @@ api.create("Player", { Id: 9, Name: "Ash", Type: "Player" }).then(console.log);
 // DELETE (by row id)
 //api.remove("Player", 2).then(console.log);
 
-        
+
             // Global delegated bindings so re-rendered buttons still work
             $(document)
                 .off('click', '#moves-button')
@@ -912,8 +912,8 @@ api.create("Player", { Id: 9, Name: "Ash", Type: "Player" }).then(console.log);
                     statuses: [], turnTaken: false
                 }
             ];
-            const initialEnemies = [{ id: 'e1', name: 'Zubat', level: 3, hp: 80, atk: { val: 20, growth: 0, status: null }, spAtk: { val: 25, growth: 0, status: null }, def: { val: 15, growth: 0, status: null }, spDef: { val: 15, growth: 0, status: null }, spd: { val: 40, growth: 0, status: null }, acc: { val: 85, growth: 0, status: null }, types: ['poison', 'flying'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e2', name: 'Rattata', level: 4, hp: 95, atk: { val: 22, growth: 0, status: null }, spAtk: { val: 22, growth: 0, status: null }, def: { val: 18, growth: 0, status: null }, spDef: { val: 18, growth: 0, status: null }, spd: { val: 35, growth: 0, status: null }, acc: { val: 90, growth: 0, status: null }, types: ['normal'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e3', name: 'Geodude', level: 5, hp: 130, atk: { val: 28, growth: 0, status: null }, spAtk: { val: 15, growth: 0, status: null }, def: { val: 40, growth: 0, status: null }, spDef: { val: 40, growth: 0, status: null }, spd: { val: 15, growth: 0, status: null }, acc: { val: 80, growth: 0, status: null }, types: ['rock', 'ground'], turnTaken: false, statuses: [{ name: 'Paralyzed', duration: 1, statEffect: { spd: 'negative' } }], inventory: [] }];		
-							
+            const initialEnemies = [{ id: 'e1', name: 'Zubat', level: 3, hp: 80, atk: { val: 20, growth: 0, status: null }, spAtk: { val: 25, growth: 0, status: null }, def: { val: 15, growth: 0, status: null }, spDef: { val: 15, growth: 0, status: null }, spd: { val: 40, growth: 0, status: null }, acc: { val: 85, growth: 0, status: null }, types: ['poison', 'flying'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e2', name: 'Rattata', level: 4, hp: 95, atk: { val: 22, growth: 0, status: null }, spAtk: { val: 22, growth: 0, status: null }, def: { val: 18, growth: 0, status: null }, spDef: { val: 18, growth: 0, status: null }, spd: { val: 35, growth: 0, status: null }, acc: { val: 90, growth: 0, status: null }, types: ['normal'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e3', name: 'Geodude', level: 5, hp: 130, atk: { val: 28, growth: 0, status: null }, spAtk: { val: 15, growth: 0, status: null }, def: { val: 40, growth: 0, status: null }, spDef: { val: 40, growth: 0, status: null }, spd: { val: 15, growth: 0, status: null }, acc: { val: 80, growth: 0, status: null }, types: ['rock', 'ground'], turnTaken: false, statuses: [{ name: 'Paralyzed', duration: 1, statEffect: { spd: 'negative' } }], inventory: [] }];
+
             // --- Helpers ---
             function getStatusIcon(statusName) {
                 const iconMap = { 'Burned': 'fa-fire text-red-500', 'Poisoned': 'fa-skull-crossbones text-purple-500', 'Paralyzed': 'fa-bolt text-yellow-400', 'Asleep': 'fa-dizzy text-blue-400', 'Frozen': 'fa-snowflake text-cyan-300', 'ATK Up': 'fa-angle-double-up text-green-400', 'DEF Up': 'fa-angle-double-up text-green-400' };
@@ -986,8 +986,8 @@ api.create("Player", { Id: 9, Name: "Ash", Type: "Player" }).then(console.log);
 			</div>`;
 			}).join('');
 			ELS.playersList.html(playersHtml);
-			
-			
+
+
 			const enemiesHtml = enemies.map(e => {
 			const glowClass = hasNegativeStatus(e) ? 'negative-status-glow' : '';
 			const levelText = isDM ? `(Lvl ${e.level})` : '';
@@ -1184,7 +1184,7 @@ api.create("Player", { Id: 9, Name: "Ash", Type: "Player" }).then(console.log);
                 // Open
                 openModal('moves');
             }
-            
+
             function openTeamPouchModal() {
                 const pouchHolder = players.find(p => p.inventory && p.inventory.includes('Team Pouch'));
                 const isPlayerTurn = players.some(p => p.id === turnOrder[currentTurnIndex]?.id && p.id === currentPlayerId);
@@ -1237,13 +1237,13 @@ api.create("Player", { Id: 9, Name: "Ash", Type: "Player" }).then(console.log);
             function openProfileModal(id) {
 		    const char = players.find(p => p.id === id) || enemies.find(e => e.id === id);
 		    if (!char) return;
-		
+
 		    $('#profile-modal').attr('data-char-id', id);
 		    $('#profile-name').text(`${char.name} (Lvl ${char.level})`);
 		    $('#profile-portrait').html(getPokemonIcon(char.name));
-		
+
 		    $('#profile-types').html(`Type: ${char.types.map(t => getTypeIcon(t)).join('')}`);
-		
+
 		    // STATS
 		    const statNames = { hp: 'HP', atk: 'ATK', spAtk: 'SP.A', def: 'DEF', spDef: 'SP.D', spd: 'SPD', acc: 'AC' };
 		    const statIcons = { hp: 'fas fa-heart text-red-500', atk: 'fas fa-khanda text-orange-400', spAtk: 'fas fa-magic text-purple-400', def: 'fas fa-shield-alt text-blue-400', spDef: 'fas fa-shield-virus text-blue-400', spd: 'fas fa-running text-green-400', acc: 'fas fa-crosshairs text-yellow-300' };
@@ -1262,21 +1262,21 @@ api.create("Player", { Id: 9, Name: "Ash", Type: "Player" }).then(console.log);
 		    $('#profile-stats')
     			 .addClass('grid grid-cols-2')
 		      .html(statsHtml);
-		
+
 		    // INVENTORY
 		    const inventoryHtml = (char.inventory || []).map((item, index) => {
 		        const dmButtons = isDM ? `<div class="space-x-1"><button class="dm-transfer-item-btn px-2 py-1 bg-blue-600 rounded text-xs" data-item-name="${item}"><i class="fas fa-exchange-alt"></i></button><button class="dm-remove-item-btn px-2 py-1 bg-red-600 rounded text-xs" data-item-index="${index}"><i class="fas fa-times"></i></button></div>` : '';
 		        return `<div class="p-1 rounded bg-gray-800 flex justify-between items-center text-xs"><span>${getItemIcon(item)}${item}</span>${dmButtons}</div>`;
 		    }).join('');
 		    $('#profile-inventory').html(inventoryHtml || '<p class="text-xs text-gray-500 text-center">Empty</p>');
-		
+
 		    // STATUSES
 		    const statusesHtml = (char.statuses || []).map((s, index) => {
 		        const dmButton = isDM ? `<button class="dm-remove-status-btn ml-2 text-red-500" data-status-index="${index}">&times;</button>` : '';
 		        return `<span class="px-2 py-1 bg-gray-800 text-xs rounded-full flex items-center">${getStatusIcon(s.name)} ${s.name} (${s.duration})${dmButton}</span>`;
 		    }).join('');
 		    $('#profile-statuses').html(statusesHtml || '<p class="text-xs text-gray-500 text-center">None</p>');
-		
+
 		    // TYPE EFFECTIVENESS (RESTORED)
 		    const typeInfoContainer = $('#type-info');
 		    let strengthsHtml = '', weaknessesHtml = '', immunitiesHtml = '';
@@ -1292,7 +1292,7 @@ api.create("Player", { Id: 9, Name: "Ash", Type: "Player" }).then(console.log);
 		    } else {
 		        typeInfoContainer.html('');
 		    }
-		
+
 		    // DM CONTROLS
 		    if (isDM) {
 		        $('#dm-profile-edit').removeClass('hidden');
@@ -1301,7 +1301,7 @@ api.create("Player", { Id: 9, Name: "Ash", Type: "Player" }).then(console.log);
 		    } else {
 		        $('#dm-profile-edit').addClass('hidden');
 		    }
-		
+
 		    const isEnemy = enemies.some(e => e.id === id);
 		    if (isEnemy && !isDM) {
 		        $('#profile-name').text(char.name);
@@ -1311,7 +1311,7 @@ api.create("Player", { Id: 9, Name: "Ash", Type: "Player" }).then(console.log);
 		        $('#profile-statuses').html('<p class="text-xs text-gray-500 text-center">Hidden</p>');
 		        $('#dm-profile-edit').addClass('hidden');
 		    }
-		
+
 		    openModal('profile');
 		}
 
@@ -1342,7 +1342,7 @@ api.create("Player", { Id: 9, Name: "Ash", Type: "Player" }).then(console.log);
             });
 
             $('.modal').on('click', '.close-button', function () { $(this).closest('.modal').removeClass('flex'); });
-            
+
             $('body').on('click', '#team-pouch-button', openTeamPouchModal);
 
 
@@ -1455,7 +1455,7 @@ api.create("Player", { Id: 9, Name: "Ash", Type: "Player" }).then(console.log);
 
                 const recipientId = $(this).data('recipient-id');
                 const recipient = players.find(p => p.id === recipientId) || enemies.find(e => e.id === recipientId);
-                
+
                 if (recipient) {
                     const itemIndex = teamPouch.items.indexOf(itemToTransferFromPouch);
                     if (itemIndex > -1) {
@@ -1478,20 +1478,20 @@ api.create("Player", { Id: 9, Name: "Ash", Type: "Player" }).then(console.log);
 			  const newValue = parseInt($(this).val(), 10);
 			  const char = players.find(p => p.id === charId) || enemies.find(e => e.id === charId);
 			  if (!char || isNaN(newValue)) return;
-			
+
 			  // Permission: DM can edit anyone; players can edit ONLY their own character
 			  if (!isDM && char.id !== currentPlayerId) {
 			    // revert the input to the current value if not allowed
 			    $(this).val(statKey === 'hp' ? char.hp : (char[statKey]?.val ?? 0));
 			    return;
 			  }
-			
+
 			  if (statKey === 'hp') { char.hp = newValue; }
 			  else if (char[statKey]) { char[statKey].val = newValue; }
-			
+
 			  const who = isDM ? 'DM' : (players.find(p => p.id === currentPlayerId)?.name || 'Player');
 			  logAction(`${who} set ${char.name}'s ${statKey.toUpperCase()} to ${newValue}.`);
-			
+
 			  renderAll();            // refresh lists/turn order
 			  openProfileModal(charId); // refresh the open profile with updated values
 			});
