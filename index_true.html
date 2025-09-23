@@ -968,14 +968,14 @@
                     const glow = hasNegativeStatus(p) ? 'negative-status-glow' : '';
                     const removeBtn = isDM ? `<button class="remove-player-btn px-2 py-1 bg-red-600 rounded-md text-xs ml-2" data-player-id="${p.playerId}" title="Remove Player"><i class="fa-solid fa-xmark"></i></button>` : '';
                     return `<div class="flex items-center space-x-2">
-                          <div class="portrait ${glow}" data-id="${p.id}"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png"/></div>
-                          <div class="flex-grow">
-                            <h3>${p.humanName || p.name}</h3>
-                            <div class="text-xs text-gray-400">${p.name} (Lvl ${p.level})</div>
-                            <span class="text-xs">HP: ${p.hp}</span>
-                          </div>
-                          ${removeBtn}
-                        </div>`;
+                              <div class="portrait ${glow}" data-id="${p.id}"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png"/></div>
+                              <div class="flex-grow">
+                                <h3>${p.humanName || p.name}</h3>
+                                <div class="text-xs text-gray-400">${p.name} (Lvl ${p.level})</div>
+                                <span class="text-xs">HP: ${p.hp}</span>
+                              </div>
+                              ${removeBtn}
+                            </div>`;
                 }).join('');
                 ELS.playersList.html(playersHtml);
 
@@ -987,13 +987,13 @@
                     const levelInfo = isDM ? `(Lvl ${e.level})` : '';
                     const hpInfo = isDM ? `<span class="text-xs">HP: ${e.hp}</span>` : '';
                     return `<div class="flex items-center space-x-2">
-                          <div class="flex-grow text-right">
-                            <h3>${e.name}</h3>
-                            <div class="text-xs text-gray-400">${levelInfo}</div>
-                            <div class="flex justify-end items-center space-x-2">${hpInfo}${dmX}</div>
-                          </div>
-                          <div class="portrait ${glow}" data-id="${e.id}"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${e.pokemonId}.png"/></div>
-                        </div>`;
+                              <div class="flex-grow text-right">
+                                <h3>${e.name}</h3>
+                                <div class="text-xs text-gray-400">${levelInfo}</div>
+                                <div class="flex justify-end items-center space-x-2">${hpInfo}${dmX}</div>
+                              </div>
+                              <div class="portrait ${glow}" data-id="${e.id}"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${e.pokemonId}.png"/></div>
+                            </div>`;
                 }).join('');
                 ELS.enemiesList.html(enemiesHtml);
             }
@@ -1027,18 +1027,18 @@
                 const isEnemyTurn = !!cur && enemies.some(e => e.id === cur.id);
                 if (isDM) {
                     ELS.actionBoard.append(`<button id="dm-force-turn-btn" class="col-span-1 px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Force DM Turn"><i class="fas fa-crown"></i></button>
-                                                <button id="dm-reset-turns-btn" class="col-span-1 px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="Reset All Turns"><i class="fas fa-redo"></i></button>
-                                                <button id="dm-end-turn-btn" class="col-span-1 px-2 py-2 bg-purple-600 rounded-lg hover:bg-purple-700" title="End DM Turn"><i class="fas fa-forward"></i></button>`);
+                                                    <button id="dm-reset-turns-btn" class="col-span-1 px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="Reset All Turns"><i class="fas fa-redo"></i></button>
+                                                    <button id="dm-end-turn-btn" class="col-span-1 px-2 py-2 bg-purple-600 rounded-lg hover:bg-purple-700" title="End DM Turn"><i class="fas fa-forward"></i></button>`);
                     if (isEnemyTurn) {
                         ELS.actionBoard.append(`<button id="moves-button" class="col-span-1 px-2 py-2 bg-blue-600 rounded-lg hover:bg-blue-700" title="Moves"><i class="fa-solid fa-wand-sparkles"></i></button>
-                                                   <button id="inventory-button" class="col-span-1 px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>`);
+                                                       <button id="inventory-button" class="col-span-1 px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>`);
                     }
                 } else {
                     const isPlayerTurn = !isDMTurn && players.some(p => p.id === cur?.id && p.playerId === currentPlayerId);
                     if (isPlayerTurn) {
                         ELS.actionBoard.append(`<button id="moves-button" class="px-2 py-2 bg-blue-600 rounded-lg hover:bg-blue-700" title="Moves"><i class="fa-solid fa-wand-sparkles"></i></button>
-                                                   <button id="inventory-button" class="px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>
-                                                   <button id="end-turn-button" class="px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="End Turn"><i class="fas fa-forward"></i></button>`);
+                                                       <button id="inventory-button" class="px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>
+                                                       <button id="end-turn-button" class="px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="End Turn"><i class="fas fa-forward"></i></button>`);
                     } else {
                         ELS.actionBoard.append(`<div class="col-span-3 text-center text-gray-400">Waiting for your turn...</div>`);
                     }
@@ -1057,10 +1057,10 @@
                     const pk = cache.Pokemon.find(x => Number(x.Id) === Number(pp.PokemonId));
                     const imgId = pk?.Id || pp.PokemonId;
                     return `<button class="character-select-btn p-4 bg-gray-700 rounded-lg shadow-lg hover:bg-gray-600" data-player-id="${p.Id}">
-                          <img class="w-20 h-20 mx-auto" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${imgId}.png"/>
-                          <div class="mt-2 text-sm font-bold text-center">${pk?.Name || 'Unknown'}</div>
-                          <div class="text-xs text-center text-gray-300">${p.Name}</div>
-                        </button>`;
+                              <img class="w-20 h-20 mx-auto" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${imgId}.png"/>
+                              <div class="mt-2 text-sm font-bold text-center">${pk?.Name || 'Unknown'}</div>
+                              <div class="text-xs text-center text-gray-300">${p.Name}</div>
+                            </button>`;
                 }).join('');
                 ELS.characterList.html(cards);
             }
@@ -1163,9 +1163,9 @@
                         const iconName = it.toLowerCase().replace(/ /g, '-');
                         const imgUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${iconName}.png`;
                         return `<div class="flex justify-between items-center bg-gray-700 rounded p-2 text-sm">
-                                  <span class="flex items-center"><img src="${imgUrl}" alt="${it}" class="item-icon mr-2"/>${it}</span>
-                                  <div class="flex space-x-1">${actions}</div>
-                                </div>`;
+                                      <span class="flex items-center"><img src="${imgUrl}" alt="${it}" class="item-icon mr-2"/>${it}</span>
+                                      <div class="flex space-x-1">${actions}</div>
+                                    </div>`;
                     }).join('') || `<div class="text-xs text-center text-gray-400">Empty</div>`;
                     ELS.profileInventory.html(invHtml);
                 }
