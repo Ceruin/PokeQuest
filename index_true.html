@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- https://stackoverflow.com/questions/53433938/how-do-i-allow-a-cors-requests-in-my-google-script -->
-<!-- https://github.com/ziolko/spreadapi -->
+    <!-- https://stackoverflow.com/questions/53433938/how-do-i-allow-a-cors-requests-in-my-google-script -->
+    <!-- https://github.com/ziolko/spreadapi -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PokéQuest</title>
@@ -114,7 +114,7 @@
         body.dm-mode .dm-mode-visible {
             display: inline-flex !important;
         }
-        
+
         body.dm-mode .dm-mode-visible-block {
             display: flex !important;
         }
@@ -420,16 +420,27 @@
             box-sizing: border-box;
         }
 
-            /* Optional: hide number spinners for steadier sizing */
-            .dm-stat-input::-webkit-outer-spin-button,
-            .dm-stat-input::-webkit-inner-spin-button {
-                -webkit-appearance: none;
-                margin: 0;
-            }
+        /* Generic stat inputs for players/DM editing */
+        .stat-input {
+            width: 3rem;
+            background-color: transparent;
+            color: #e2e8f0;
+            border: none;
+            outline: none;
+            text-align: center;
+            font-size: 0.75rem;
+        }
 
-            .dm-stat-input[type=number] {
-                -moz-appearance: textfield;
-            }
+        /* Optional: hide number spinners for steadier sizing */
+        .dm-stat-input::-webkit-outer-spin-button,
+        .dm-stat-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .dm-stat-input[type=number] {
+            -moz-appearance: textfield;
+        }
         /* Moves UI */
         .move-card {
             background-color: #374151;
@@ -451,6 +462,68 @@
             opacity: 0.5;
             filter: grayscale(100%);
         }
+
+        /* Ensure secondary modals (share/use/transfer) stack above inventory modal */
+        #share-item-modal,
+        #transfer-item-modal,
+        #transfer-from-pouch-modal {
+            z-index: 1500;
+        }
+
+        /* Pending Pokéball icon (small shake) */
+        #pending-icon {
+            position: fixed;
+            top: 0.5rem;
+            right: 0.5rem;
+            z-index: 2000;
+            display: none;
+        }
+
+            #pending-icon img {
+                width: 2rem;
+                height: 2rem;
+                animation: pending-bounce 1s infinite;
+                image-rendering: pixelated;
+            }
+
+        @keyframes pending-bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        /* First load overlay with large Pokéball */
+        #first-load-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            /* Do not set a default display here; Tailwind's `hidden` utility sets
+               `display: none`, so we rely on an explicit rule below to show the
+               overlay only when it does not have the `hidden` class. */
+            z-index: 3000;
+        }
+
+            #first-load-overlay img {
+                width: 6rem;
+                height: 6rem;
+                animation: pending-bounce 1s infinite;
+                image-rendering: pixelated;
+            }
+            /* Show the overlay as a flex container only when it is not hidden. Without
+           this rule, the id selector’s specificity would override Tailwind’s
+           `hidden` class, causing the overlay to remain visible. */
+            #first-load-overlay:not(.hidden) {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200 flex flex-col items-center justify-center p-2 sm:p-4 min-h-screen">
@@ -461,15 +534,15 @@
         <div id="character-list" class="flex flex-wrap justify-center gap-4">
             <!-- Player options will be injected here by JS -->
         </div>
-        <div id="dm-selection" class="mt-8 text-center">
+        <div id="dm-selection" class="mt-8 flex flex-col items-center text-center">
             <h2 class="text-2xl mb-4">Or Be The Dungeon Master</h2>
-            <button id="select-dm-btn" data-id="dm" class="character-select-btn p-4 bg-purple-800 rounded-lg shadow-lg hover:bg-purple-700">
-                <i class="fas fa-crown fa-3x"></i>
-                <p class="mt-2">DM</p>
+            <button id="select-dm-btn" data-id="dm" class="character-select-btn p-4 bg-purple-800 rounded-lg shadow-lg hover:bg-purple-700 relative flex flex-col items-center">
+                <!-- Brock portrait icon for DM -->
+                <img src="https://archives.bulbagarden.net/media/upload/a/a6/Lets_Go_Pikachu_Eevee_Brock.png" alt="Brock" class="w-20 h-20 mx-auto rounded-full border-2 border-purple-300 object-contain" />
+                <!-- Small sprite overlay -->
+                <img src="https://archives.bulbagarden.net/media/upload/e/e2/Spr_RG_Brock.png" alt="DM Icon" class="absolute bottom-2 right-2 w-6 h-6" />
+                <p class="mt-2 text-lg">Dungeon Master</p>
             </button>
-        </div>
-        <div class="mt-8">
-            <button id="reset-selections-btn" class="px-4 py-2 bg-red-700 rounded-lg shadow-md hover:bg-red-800 text-xs">Reset Selections</button>
         </div>
     </div>
 
@@ -492,7 +565,17 @@
         <!-- Main Content Grid -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 w-full">
             <!-- Players Column -->
-            <div class="flex flex-col space-y-4"><div class="container-box p-4"><h2 class="text-xl mb-4 text-center">PLAYERS</h2><div id="players-list" class="flex flex-col space-y-4"></div></div></div>
+            <div class="flex flex-col space-y-4">
+                <div class="container-box p-4">
+                    <div class="flex items-center justify-center mb-4 gap-2">
+                        <h2 class="text-xl text-center">PLAYERS</h2>
+                        <button id="add-player-button" class="dm-mode-visible inline-flex items-center justify-center w-8 h-8 p-0 bg-green-600 rounded-md hover:bg-green-700" aria-label="Add Player" title="Add Player">
+                            <i class="fas fa-plus fa-sm"></i>
+                        </button>
+                    </div>
+                    <div id="players-list" class="flex flex-col space-y-4"></div>
+                </div>
+            </div>
 
             <!-- Center Column -->
             <div class="flex flex-col items-center space-y-8">
@@ -502,7 +585,7 @@
                     <div id="action-board" class="grid grid-cols-3 gap-2">
                         <!-- Actions dynamically rendered here based on turn and role -->
                     </div>
-                     <button id="team-pouch-button" class="px-4 py-2 bg-yellow-600 rounded-lg shadow-md hover:bg-yellow-700 w-full"><i class="fas fa-briefcase mr-2"></i>Team Pouch</button>
+                    <button id="team-pouch-button" class="px-4 py-2 bg-yellow-600 rounded-lg shadow-md hover:bg-yellow-700 w-full"><i class="fas fa-briefcase mr-2"></i>Team Pouch</button>
                 </div>
                 <div class="container-box w-full p-4"><h2 class="text-xl text-center mb-4">ROLL DICE</h2><div id="dice-buttons" class="grid grid-cols-3 gap-2"><button data-sides="4" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D4</button><button data-sides="6" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D6</button><button data-sides="8" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D8</button><button data-sides="10" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D10</button><button data-sides="12" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D12</button><button data-sides="20" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D20</button></div></div>
                 <div class="container-box w-full p-4 flex-grow flex flex-col"><div id="log-header" class="log-header mb-2"><h2 class="text-xl text-center">LOG</h2><span id="log-toggle-icon" class="toggle-icon">+</span></div><div id="log-content" class="hidden"><textarea id="log-box" class="log-box w-full h-48" readonly>Log start...\n</textarea></div></div>
@@ -579,7 +662,7 @@
             <div id="transfer-target-list" class="space-y-2"></div>
         </div>
     </div>
-    
+
     <!-- Team Pouch Modal -->
     <div id="team-pouch-modal" class="modal">
         <div class="modal-content container-box">
@@ -613,996 +696,1037 @@
         </div>
     </div>
 
+    <!-- Add Player Modal -->
+    <div id="add-player-modal" class="modal">
+        <div class="modal-content container-box">
+            <span class="close-button">&times;</span>
+            <h2 class="text-xl text-center mb-4">ADD PLAYER</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm">Player Name</label>
+                    <input type="text" id="new-player-name-input" class="w-full px-2 py-1 rounded bg-gray-700" placeholder="Ash" />
+                </div>
+                <div>
+                    <label class="block text-sm">Pokemon Species</label>
+                    <select id="new-player-pokemon-select" class="w-full px-2 py-1 rounded bg-gray-700"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-sm">Level</label>
+                        <input type="number" id="new-player-level-input" class="w-full px-2 py-1 rounded bg-gray-700" value="1" />
+                    </div>
+                    <div>
+                        <label class="block text-sm">HP</label>
+                        <input type="number" id="new-player-hp-input" class="w-full px-2 py-1 rounded bg-gray-700" value="10" />
+                    </div>
+                </div>
+                <button id="submit-new-player" class="w-full px-4 py-2 bg-green-600 rounded-lg hover:bg-green-700">Add Player</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Icon (small pokéball) -->
+    <div id="pending-icon">
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Loading" />
+    </div>
+
+    <!-- First Load Overlay -->
+    <div id="first-load-overlay" class="hidden">
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Loading" />
+    </div>
+
     <script>
         $(function () {
-// Minimal helper to call your Apps Script
-class PokeQuestApi {
-  /**
-   * @param {{scriptURL:string, apiKey?:string}} options
-   */
-  constructor(options) {
-    if (!options || !options.scriptURL) throw new Error("scriptURL is required");
-    this.scriptURL = options.scriptURL;
-    this.apiKey = options.apiKey || "public"; // default for your public mode
-  }
-
-  /**
-   * Low-level POST wrapper
-   * @param {object|object[]} payload A single request or an array for batch
-   * @returns {Promise<any>}
-   */
-  _post(payload) {
-    return $.ajax({
-      url: this.scriptURL,
-      type: "POST",
-      crossDomain: true,   
-      processData: false,
-      xhrFields: { withCredentials: false },
-      dataType: "text",
-      contentType: "text/plain;charset=utf-8",
-      data: JSON.stringify(payload)
-    }).then(res => {
-      // If Apps Script returns a JSON string, parse it; otherwise trust jQuery
-      if (typeof res === "string") {
-        try { return JSON.parse(res); } catch { return res; }
-      }
-      return res;
-    });
-  }
-
-  /**
-   * Build request envelope with standard fields
-   */
-  _req(sheet, method, extra = {}) {
-    return Object.assign({
-      key: this.apiKey,
-      sheet: sheet,
-      method: method
-    }, extra);
-  }
-
-  /**
-   * List rows from a sheet (table)
-   * @param {string} sheet Sheet name (e.g., "Player")
-   * @param {{limit?:number, order?:'asc'|'desc', start_id?:number}} opts
-   * @returns {Promise<{status:number, data:any[], next?:number}>}
-   */
-  list(sheet, opts = {}) {
-    return this._post(this._req(sheet, "GET", {
-      limit: opts.limit,
-      order: (opts.order || "asc"),
-      start_id: opts.start_id
-    }));
-  }
-
-  /**
-   * Get a single row by its sheet row index (_id)
-   * @param {string} sheet
-   * @param {number} id Row index in the sheet (>=2)
-   */
-  get(sheet, id) {
-    return this._post(this._req(sheet, "GET", { id }));
-  }
-
-  /**
-   * Create (append) a new row. Keys in payload must match the sheet headers.
-   * @param {string} sheet
-   * @param {object} payload { ColumnName: value, ... }
-   */
-  create(sheet, payload) {
-    return this._post(this._req(sheet, "POST", { payload }));
-  }
-
-  /**
-   * Update specific columns in a row (by sheet row index)
-   * @param {string} sheet
-   * @param {number} id
-   * @param {object} payload { ColumnName: newValue, ... }
-   */
-  update(sheet, id, payload) {
-    return this._post(this._req(sheet, "PUT", { id, payload }));
-  }
-
-  /**
-   * Delete a row by id (clears cells on that row)
-   * @param {string} sheet
-   * @param {number} id
-   */
-  remove(sheet, id) {
-    return this._post(this._req(sheet, "DELETE", { id }));
-  }
-
-  /**
-   * Batch multiple operations in one HTTP request.
-   * @param {Array<{sheet:string, method:'GET'|'POST'|'PUT'|'DELETE', id?:number, payload?:object, limit?:number, order?:string, start_id?:number}>} ops
-   * @returns {Promise<Array<any>>}
-   *
-   * Example:
-   * api.batch([
-   *   { sheet:'Player', method:'GET', limit:100 },
-   *   { sheet:'Items', method:'POST', payload:{ Id: 3, Name:'Potion', Description:'Heals 20 HP'} }
-   * ])
-   */
-  batch(ops) {
-    const requests = ops.map(op => this._req(op.sheet, op.method, op));
-    return this._post(requests);
-  }
-}
-
-// Optional: convenience “table” models for your known sheets.
-// These just pin the sheet name so you don’t repeat it everywhere.
-class Table {
-  constructor(api, sheet) {
-    this.api = api;
-    this.sheet = sheet;
-  }
-  list(opts)   { return this.api.list(this.sheet, opts); }
-  get(id)      { return this.api.get(this.sheet, id); }
-  create(row)  { return this.api.create(this.sheet, row); }
-  update(id,p) { return this.api.update(this.sheet, id, p); }
-  remove(id)   { return this.api.remove(this.sheet, id); }
-}
-
-// Example registry using the sheets detected in your workbook
-function createPokeQuestDb(api) {
-  return {
-    Player:         new Table(api, "Player"),
-    Pokemon:        new Table(api, "Pokemon"),
-    Items:          new Table(api, "Items"),
-    Statuses:       new Table(api, "Statuses"),
-    Moves:          new Table(api, "Moves"),
-    Types:          new Table(api, "Types"),
-    PokemonTypes:   new Table(api, "PokemonTypes"),
-    PlayerPokemon:  new Table(api, "PlayerPokemon"),
-    PlayerItems:    new Table(api, "PlayerItems"),
-    PlayerStatuses: new Table(api, "PlayerStatuses"),
-    PlayerMoves:    new Table(api, "PlayerMoves"),
-    Log:            new Table(api, "Log"),
-  };
-}
-
-const api = new PokeQuestApi({
-  scriptURL: "https://script.google.com/macros/s/AKfycbxEfLxpt4VtIRlD9MBGrZVBeHtIUA6Y5WdaE7Q_RC70CZzkMwKYonL1-rP2z8uioOAi/exec",
-  apiKey: "public" // or your private/admin key
-});
-
-
-// READ (list all rows in a sheet)
-//api.list("Player", { limit: 100 }).then(console.log);
-
-// READ one by row id (_id is the sheet row index)
-api.get("Player", 2).then(console.log);
-
-// CREATE
-api.create("Player", { Id: 9, Name: "Ash", Type: "Player" }).then(console.log);
-
-// UPDATE (by row id)
-//api.update("Player", 2, { Name: "Misty" }).then(console.log);
-
-// DELETE (by row id)
-//api.remove("Player", 2).then(console.log);
-
-        
-            // Global delegated bindings so re-rendered buttons still work
-            $(document)
-                .off('click', '#moves-button')
-                .on('click', '#moves-button', () => openMovesModal())
-                .off('click', '#inventory-button')
-                .on('click', '#inventory-button', () => openInventoryModal());
-
-            // Optional: make the X button inside the moves modal use your modal helper
-            $(document).on('click', '#moves-modal .close-button', () => closeModal && closeModal('moves'));
-
-
-            // DOM Elements
-            const ELS = {
-                body: $('body'), gameBoard: $('#game-board'), logBox: $('#log-box'), playersList: $('#players-list'), enemiesList: $('#enemies-list'), turnOrderContainer: $('#turn-order-container'), currentTurnDisplay: $('#current-turn-display'), playerIdentity: $('#player-identity'), diceDisplay: $('#dice-display'), actionBoard: $('#action-board')
-            };
-
-            // Game State
-            let isDM = false, isDMTurn = false, currentPlayerId = null;
-            let turnOrder = [], currentTurnIndex = 0;
-            let players = [], enemies = [];
-            let teamPouch = { items: ['Potion', 'Revive Seed'], coins: 100 };
-            let itemToShare = null;
-            let itemToTransferFromPouch = null;
-            let transferPayload = { sourceId: null, itemName: null };
-
-            // --- Master Data ---
-            const SPECIES_TEMPLATES = {
-                Pikachu: { types: ['electric'], baseStats: { atk: 22, spAtk: 26, def: 18, spDef: 20, spd: 35, acc: 90 } },
-                Charmander: { types: ['fire'], baseStats: { atk: 24, spAtk: 24, def: 18, spDef: 20, spd: 30, acc: 88 } }
-            };
-
-            const POKEMON_IDS = {
-                'Pikachu': 25,
-                'Charmander': 4,
-                'Bulbasaur': 1,
-                'Squirtle': 7,
-                'Eevee': 133,
-                'Zubat': 41,
-                'Rattata': 19,
-                'Geodude': 74
-            };
-
-            const ALL_ITEMS = {
-                'Oran Berry': 'oran-berry',
-                'Pecha Berry': 'pecha-berry',
-                'Sitrus Berry': 'sitrus-berry',
-                'Revive Seed': 'revive-seed',
-                'Potion': 'potion',
-                'Max Elixir': 'max-elixir',
-                'Escape Orb': 'escape-orb',
-                'Team Pouch': 'cherish-ball',
-            };
-            const ALL_STATUSES = [
-                { name: 'Burned', duration: -1, statEffect: { atk: 'negative' } },
-                { name: 'Poisoned', duration: 3 },
-                { name: 'Paralyzed', duration: 2, statEffect: { spd: 'negative' } },
-                { name: 'Asleep', duration: 2 },
-                { name: 'Frozen', duration: 1 },
-                { name: 'ATK Up', duration: 3, statEffect: { atk: 'positive' } },
-                { name: 'DEF Up', duration: 3, statEffect: { def: 'positive' } },
-            ];
-
-            const typeEffectiveness = { normal: { strengths: [], weaknesses: ['fighting'], immunities: ['ghost'], name: 'Normal' }, fire: { strengths: ['grass', 'ice', 'bug', 'steel'], weaknesses: ['water', 'ground', 'rock'], immunities: [], name: 'Fire' }, water: { strengths: ['fire', 'ground', 'rock'], weaknesses: ['electric', 'grass'], immunities: [], name: 'Water' }, electric: { strengths: ['water', 'flying'], weaknesses: ['ground'], immunities: [], name: 'Electric' }, grass: { strengths: ['water', 'ground', 'rock'], weaknesses: ['fire', 'ice', 'poison', 'flying', 'bug'], immunities: [], name: 'Grass' }, ice: { strengths: ['grass', 'ground', 'flying', 'dragon'], weaknesses: ['fire', 'fighting', 'rock', 'steel'], immunities: [], name: 'Ice' }, fighting: { strengths: ['normal', 'ice', 'rock', 'dark', 'steel'], weaknesses: ['flying', 'psychic', 'fairy'], immunities: [], name: 'Fighting' }, poison: { strengths: ['grass', 'fairy'], weaknesses: ['ground', 'psychic'], immunities: [], name: 'Poison' }, ground: { strengths: ['fire', 'electric', 'poison', 'rock', 'steel'], weaknesses: ['water', 'grass', 'ice'], immunities: ['electric'], name: 'Ground' }, flying: { strengths: ['fighting', 'bug', 'grass'], weaknesses: ['electric', 'ice', 'rock'], immunities: ['ground'], name: 'Flying' }, psychic: { strengths: ['fighting', 'poison'], weaknesses: ['bug', 'ghost', 'dark'], immunities: [], name: 'Psychic' }, bug: { strengths: ['grass', 'psychic', 'dark'], weaknesses: ['fire', 'flying', 'rock'], immunities: [], name: 'Bug' }, rock: { strengths: ['fire', 'ice', 'flying', 'bug'], weaknesses: ['water', 'grass', 'fighting', 'ground', 'steel'], immunities: ['normal'], name: 'Rock' }, ghost: { strengths: ['psychic', 'ghost'], weaknesses: ['ghost', 'dark'], immunities: ['normal', 'fighting'], name: 'Ghost' }, dragon: { strengths: ['dragon'], weaknesses: ['ice', 'dragon', 'fairy'], immunities: [], name: 'Dragon' }, dark: { strengths: ['psychic', 'ghost'], weaknesses: ['fighting', 'bug', 'fairy'], immunities: ['psychic'], name: 'Dark' }, steel: { strengths: ['ice', 'rock', 'fairy'], weaknesses: ['fire', 'fighting', 'ground'], immunities: ['poison'], name: 'Steel' }, fairy: { strengths: ['fighting', 'dragon', 'dark'], weaknesses: ['poison', 'steel'], immunities: ['dragon'], name: 'Fairy' } };
-            const initialPlayers = [
-                {
-                    id: 'p1', name: 'Pikachu', level: 5, hp: 100,
-                    atk: { val: 25, growth: 3, status: null }, spAtk: { val: 30, growth: 3, status: null },
-                    def: { val: 20, growth: 2, status: null }, spDef: { val: 20, growth: 2, status: null },
-                    spd: { val: 35, growth: 4, status: null }, acc: { val: 90, growth: 0, status: null },
-                    types: ['electric'],
-                    abilities: [
-                        { name: 'Thunder Shock', levelRequired: 1, description: 'Light Electric damage; great against Water/Flying.' },
-                        { name: 'Quick Attack', levelRequired: 3, description: 'Swift Normal strike; often acts early.' }
-                    ],
-                    specialMove: { name: 'Volt Tackle', levelRequired: 7, description: 'High-power Electric charge. Risky but devastating.' },
-                    inventory: ['Oran Berry', 'Pecha Berry', 'Team Pouch'],
-                    statuses: [], turnTaken: false
-                },
-                {
-                    id: 'p2', name: 'Charmander', level: 5, hp: 110,
-                    atk: { val: 28, growth: 3, status: null }, spAtk: { val: 25, growth: 3, status: null },
-                    def: { val: 22, growth: 2, status: null }, spDef: { val: 22, growth: 2, status: null },
-                    spd: { val: 30, growth: 3, status: null }, acc: { val: 85, growth: 0, status: null },
-                    types: ['fire'],
-                    abilities: [
-                        { name: 'Ember', levelRequired: 1, description: 'Small Fire damage; can singe over time.' },
-                        { name: 'Scratch', levelRequired: 1, description: 'Basic claw attack. Reliable in a pinch.' }
-                    ],
-                    specialMove: { name: 'Flamethrower', levelRequired: 7, description: 'Strong Fire stream; excels at groups and Grass/Ice.' },
-                    inventory: ['Sitrus Berry'],
-                    statuses: [], turnTaken: false
-                },
-                {
-                    id: 'p3', name: 'Bulbasaur', level: 5, hp: 120,
-                    atk: { val: 22, growth: 2, status: null }, spAtk: { val: 28, growth: 3, status: null },
-                    def: { val: 28, growth: 3, status: null }, spDef: { val: 28, growth: 3, status: null },
-                    spd: { val: 25, growth: 2, status: null }, acc: { val: 95, growth: 0, status: null },
-                    types: ['grass', 'poison'],
-                    abilities: [
-                        { name: 'Vine Whip', levelRequired: 1, description: 'Grass lash; hits Ground/Rock/Water effectively.' }
-                    ],
-                    specialMove: { name: 'Solar Beam', levelRequired: 7, description: 'Massive Grass blast after gathering light.' },
-                    inventory: ['Revive Seed'],
-                    statuses: [{ name: 'Poisoned', duration: 3 }],
-                    turnTaken: false
-                },
-                {
-                    id: 'p4', name: 'Squirtle', level: 5, hp: 105,
-                    atk: { val: 24, growth: 2, status: null }, spAtk: { val: 26, growth: 2, status: null },
-                    def: { val: 30, growth: 4, status: null }, spDef: { val: 30, growth: 4, status: null },
-                    spd: { val: 28, growth: 3, status: null }, acc: { val: 90, growth: 0, status: null },
-                    types: ['water'],
-                    abilities: [
-                        { name: 'Water Gun', levelRequired: 1, description: 'Water burst; great vs Fire/Ground/Rock.' }
-                    ],
-                    specialMove: { name: 'Hydro Pump', levelRequired: 7, description: 'High-pressure Water cannon with big impact.' },
-                    inventory: ['Potion'],
-                    statuses: [], turnTaken: false
-                },
-                {
-                    id: 'p5', name: 'Eevee', level: 5, hp: 95,
-                    atk: { val: 30, growth: 3, status: null }, spAtk: { val: 30, growth: 3, status: null },
-                    def: { val: 20, growth: 2, status: null }, spDef: { val: 20, growth: 2, status: null },
-                    spd: { val: 40, growth: 4, status: null }, acc: { val: 88, growth: 0, status: null },
-                    types: ['normal'],
-                    abilities: [
-                        { name: 'Tackle', levelRequired: 1, description: 'Classic body-check. Simple and steady.' }
-                    ],
-                    specialMove: { name: 'Last Resort', levelRequired: 7, description: 'All-out Normal strike unleashed at higher levels.' },
-                    inventory: [],
-                    statuses: [], turnTaken: false
+            // ==== API layer (same interface as your file) ============================================
+            class PokeQuestApi {
+                constructor(options) {
+                    if (!options || !options.scriptURL) throw new Error("scriptURL is required");
+                    this.scriptURL = options.scriptURL;
+                    this.apiKey = options.apiKey || "public";
                 }
-            ];
-            const initialEnemies = [{ id: 'e1', name: 'Zubat', level: 3, hp: 80, atk: { val: 20, growth: 0, status: null }, spAtk: { val: 25, growth: 0, status: null }, def: { val: 15, growth: 0, status: null }, spDef: { val: 15, growth: 0, status: null }, spd: { val: 40, growth: 0, status: null }, acc: { val: 85, growth: 0, status: null }, types: ['poison', 'flying'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e2', name: 'Rattata', level: 4, hp: 95, atk: { val: 22, growth: 0, status: null }, spAtk: { val: 22, growth: 0, status: null }, def: { val: 18, growth: 0, status: null }, spDef: { val: 18, growth: 0, status: null }, spd: { val: 35, growth: 0, status: null }, acc: { val: 90, growth: 0, status: null }, types: ['normal'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e3', name: 'Geodude', level: 5, hp: 130, atk: { val: 28, growth: 0, status: null }, spAtk: { val: 15, growth: 0, status: null }, def: { val: 40, growth: 0, status: null }, spDef: { val: 40, growth: 0, status: null }, spd: { val: 15, growth: 0, status: null }, acc: { val: 80, growth: 0, status: null }, types: ['rock', 'ground'], turnTaken: false, statuses: [{ name: 'Paralyzed', duration: 1, statEffect: { spd: 'negative' } }], inventory: [] }];		
-							
-            // --- Helpers ---
-            function getStatusIcon(statusName) {
-                const iconMap = { 'Burned': 'fa-fire text-red-500', 'Poisoned': 'fa-skull-crossbones text-purple-500', 'Paralyzed': 'fa-bolt text-yellow-400', 'Asleep': 'fa-dizzy text-blue-400', 'Frozen': 'fa-snowflake text-cyan-300', 'ATK Up': 'fa-angle-double-up text-green-400', 'DEF Up': 'fa-angle-double-up text-green-400' };
-                return `<i class="fas ${iconMap[statusName] || 'fa-question-circle text-gray-400'}"></i>`;
-            }
-            function getPokemonIcon(name) {
-                var id = POKEMON_IDS[name];
-                if (!id) {
-                    return '<i class="fas fa-user-circle fa-3x text-gray-400"></i>';
-                }
-                return '<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' +
-                    id +
-                    '.png" alt="' + name + '" class="w-full h-full object-contain">';
-            }
-            function getItemIcon(name) {
-                var iconName = ALL_ITEMS[name];
-                if (!iconName) {
-                    return '<i class="fas fa-box-open icon"></i>';
-                }
-                return '<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/' +
-                    iconName +
-                    '.png" alt="' + name + '" class="item-icon">';
-            }
-
-            function getTypeIcon(typeName) {
-                var type = typeEffectiveness[typeName.toLowerCase()];
-                if (!type) return '';
-                return '<span class="type-icon type-' + typeName.toLowerCase() + '" title="' + type.name + '">' +
-                    type.name.substring(0, 2).toUpperCase() +
-                    '</span>';
-            }
-            function getEffectiveStat(char, statName) {
-                if (!char[statName] && statName !== 'hp') return { value: 0, statusEffect: null };
-                let value = statName === 'hp' ? char.hp : char[statName].val;
-                let statusEffect = null;
-                if (char.statuses) {
-                    char.statuses.forEach(status => {
-                        if (status.statEffect && status.statEffect[statName]) {
-                            statusEffect = status.statEffect[statName];
-                            if (statusEffect === 'positive') value = Math.round(value * 1.25);
-                            else if (statusEffect === 'negative') value = Math.round(value * 0.75);
-                        }
+                _post(payload) {
+                    return $.ajax({
+                        url: this.scriptURL,
+                        type: "POST",
+                        crossDomain: true,
+                        processData: false,
+                        xhrFields: { withCredentials: false },
+                        dataType: "text",
+                        contentType: "text/plain;charset=utf-8",
+                        data: JSON.stringify(payload)
+                    }).then(res => {
+                        if (typeof res === "string") { try { return JSON.parse(res); } catch { return res; } }
+                        return res;
                     });
                 }
-                return { value, statusEffect };
+                _req(sheet, method, extra = {}) { return Object.assign({ key: this.apiKey, sheet, method }, extra); }
+                list(sheet, opts = {}) { return this._post(this._req(sheet, "GET", { limit: opts.limit, order: (opts.order || "asc"), start_id: opts.start_id })); }
+                get(sheet, id) { return this._post(this._req(sheet, "GET", { id })); }
+                create(sheet, row) { return this._post(this._req(sheet, "POST", { payload: row })); }
+                update(sheet, id, p) { return this._post(this._req(sheet, "PUT", { id, payload: p })); }
+                remove(sheet, id) { return this._post(this._req(sheet, "DELETE", { id })); }
+                batch(ops) { return this._post(ops.map(op => this._req(op.sheet, op.method, op))); }
             }
+
+            class Table {
+                constructor(api, sheet) { this.api = api; this.sheet = sheet; }
+                list(o) { return this.api.list(this.sheet, o); } get(id) { return this.api.get(this.sheet, id); } create(r) { return this.api.create(this.sheet, r); } update(id, p) { return this.api.update(this.sheet, id, p); } remove(id) { return this.api.remove(this.sheet, id); }
+            }
+
+            function createPokeQuestDb(api) {
+                return {
+                    Player: new Table(api, "Player"),
+                    Pokemon: new Table(api, "Pokemon"),
+                    Items: new Table(api, "Items"),
+                    Statuses: new Table(api, "Statuses"),
+                    Moves: new Table(api, "Moves"),
+                    Types: new Table(api, "Types"),
+                    PokemonTypes: new Table(api, "PokemonTypes"),
+                    PlayerPokemon: new Table(api, "PlayerPokemon"),
+                    PlayerItems: new Table(api, "PlayerItems"),
+                    PlayerStatuses: new Table(api, "PlayerStatuses"),
+                    PlayerMoves: new Table(api, "PlayerMoves"),
+                    Log: new Table(api, "Log"),
+                };
+            }
+
+            // === Configure your Apps Script endpoint (keep your existing one if different) ============
+            const api = new PokeQuestApi({
+                scriptURL: "https://script.google.com/macros/s/AKfycbxEfLxpt4VtIRlD9MBGrZVBeHtIUA6Y5WdaE7Q_RC70CZzkMwKYonL1-rP2z8uioOAi/exec",
+                apiKey: "public"
+            });
+            const DB = createPokeQuestDb(api);
+
+            // ==== DOM handles (match your existing IDs) ===============================================
+            const ELS = {
+                body: $('body'),
+                gameBoard: $('#game-board'),
+                characterSelection: $('#character-selection-screen'),
+                characterList: $('#character-list'),
+                playersList: $('#players-list'),
+                enemiesList: $('#enemies-list'),
+                turnOrderContainer: $('#turn-order-container'),
+                currentTurnDisplay: $('#current-turn-display'),
+                playerIdentity: $('#player-identity'),
+                diceDisplay: $('#dice-display'),
+                actionBoard: $('#action-board'),
+                // Modals
+                addEnemyModal: $('#add-enemy-modal'),
+                pokemonSelect: $('#pokemon-select'),
+                enemyNameInput: $('#enemy-name-input'),
+                enemyLevelInput: $('#enemy-level-input'),
+                enemyHpInput: $('#enemy-hp-input'),
+                profileModal: $('#profile-modal'),
+                profileName: $('#profile-name'),
+                profilePortrait: $('#profile-portrait'),
+                profileTypes: $('#profile-types'),
+                profileStats: $('#profile-stats'),
+                profileInventory: $('#profile-inventory'),
+                profileStatuses: $('#profile-statuses'),
+                dmAddItemSelect: $('#dm-add-item-select'),
+                dmAddItemBtn: $('#dm-add-item-btn'),
+                dmAddStatusSelect: $('#dm-add-status-select'),
+                dmStatusDurationInput: $('#dm-status-duration-input'),
+                dmAddStatusBtn: $('#dm-add-status-btn'),
+                teamPouchBtn: $('#team-pouch-button'),
+                teamPouchModal: $('#team-pouch-modal'),
+                pouchCoinsDisplay: $('#pouch-coins-display'),
+                pouchCoinsInput: $('#dm-pouch-coins-input'),
+                pouchInventoryList: $('#pouch-inventory-list'),
+                dmAddPouchItemSelect: $('#dm-add-pouch-item-select'),
+                dmAddPouchItemBtn: $('#dm-add-pouch-item-btn'),
+                transferFromPouchModal: $('#transfer-from-pouch-modal'),
+                transferFromPouchPlayerList: $('#transfer-from-pouch-player-list'),
+                movesModal: $('#moves-modal'),
+                movesList: $('#moves-list'),
+                specialMove: $('#special-move'),
+                inventoryModal: $('#inventory-modal'),
+                inventoryList: $('#inventory-list'),
+                shareItemModal: $('#share-item-modal'),
+                sharePlayerList: $('#share-player-list'),
+            };
+
+            // ==== State ==============================================================================
+            let isDM = false, isDMTurn = false, currentPlayerId = null;
+            let players = [], enemies = [], turnOrder = [], currentTurnIndex = 0;
+            let teamPouch = { items: [], coins: 0 };
+            let cache = { Players: [], Pokemon: [], Types: [], PokemonTypes: [], Items: [], Statuses: [], Moves: [], PlayerPokemon: [], PlayerItems: [], PlayerStatuses: [], PlayerMoves: [], Log: [] };
+            let activeProfileChar = null; // for DM edits
+
+            // ==== Utilities ===========================================================================
+            const rowIdOf = (row) => row?._id ?? row?.id ?? row?._row ?? row?.rowId ?? null;
+            const unwrap = (res) => (res && typeof res === 'object' && 'data' in res) ? res.data : res;
+            const byId = (list, key = 'Id') => Object.fromEntries((list || []).filter(Boolean).map(r => [Number(r[key]), r]));
+            const toInt = (v) => v == null ? null : Number(v);
+            const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+            function logLocal(message) {
+                const ts = new Date().toLocaleTimeString();
+                const box = $('#log-box');
+                if (box.length) { box.val(`[${ts}] ${message}\n` + box.val()).scrollTop(0); }
+            }
+            async function logRemote(message) {
+                try { await DB.Log.create({ Description: message, Timestamp: new Date().toISOString() }); } catch (e) { /* swallow */ }
+                logLocal(message);
+            }
+
+            // Pending indicator helpers
+            function showPending() {
+                $('#pending-icon').show();
+            }
+            function hidePending() {
+                $('#pending-icon').hide();
+            }
+
+            function pokemonTypesOf(pokemonId, typesById) {
+                const rows = (cache.PokemonTypes || []).filter(pt => Number(pt.PokemonId) === Number(pokemonId));
+                return rows.map(r => typesById[Number(r.TypeId)]?.Name).filter(Boolean).map(n => n.toLowerCase());
+            }
+
+            function toStatCell(val, growth) { return { val: Number(val) || 0, growth: Number(growth) || 0, status: null }; }
+
+            function toCharacter(playerRow, ppRow, pokemonRow, typesById, itemsById, statusesById, movesById) {
+                // Be resilient: rows or columns may be missing
+                if (!playerRow || !ppRow) return null;
+                const safePoke = pokemonRow || {};
+                const pid = Number(playerRow.Id);
+                const pkmId = Number(ppRow.PokemonId);
+                const types = pokemonTypesOf(pkmId, typesById);
+
+                const inv = (cache.PlayerItems || [])
+                    .filter(pi => Number(pi.PlayerId) === pid)
+                    .map(pi => itemsById[Number(pi.ItemId)]?.Name)
+                    .filter(Boolean);
+
+                const statuses = (cache.PlayerStatuses || [])
+                    .filter(ps => Number(ps.PlayerId) === pid)
+                    .map(ps => {
+                        const s = statusesById[Number(ps.StatusId)];
+                        return s ? { name: s.Name, duration: s.Turns ?? null } : null;
+                    }).filter(Boolean);
+
+                const abilities = (cache.PlayerMoves || [])
+                    .filter(pm => Number(pm.PlayerId) === pid)
+                    .map(pm => movesById[Number(pm.MoveId)])
+                    .filter(Boolean)
+                    .map(m => ({
+                        name: m.Name,
+                        levelRequired: 1,
+                        description: m.Description,
+                        typeId: m.TypeId,
+                        accuracy: m.Accuracy,
+                        category: m.Category
+                    }));
+
+                const toStatCell = (val, growth) => ({ val: Number(val) || 0, growth: Number(growth) || 0, status: null });
+                const stats = {
+                    atk: toStatCell(safePoke.Atk, safePoke.AtkGrowth),
+                    spAtk: toStatCell(safePoke.SpAtk, safePoke.SpAtkGrowth),
+                    def: toStatCell(safePoke.Def, safePoke.DefGrowth),
+                    spDef: toStatCell(safePoke.SpDef, safePoke.SpDefGrowth),
+                    spd: toStatCell(safePoke.Spd, safePoke.SpdGrowth),
+                    acc: toStatCell(safePoke.Ac, safePoke.AcGrowth)
+                };
+
+                const level = Number(ppRow.Level) || 1;
+                const baseHp = Number(safePoke.Hp) || 0;
+                const hp = Number(ppRow.Hp) || baseHp;
+
+                return {
+                    id: `p${pid}-${pkmId}`,
+                    playerId: pid,
+                    pokemonId: pkmId,
+                    // Display name for the Pokémon (species or custom name)
+                    name: safePoke.Name || `#${pkmId}`,
+                    // Human/player trainer name for listing
+                    humanName: playerRow?.Name || '',
+                    level,
+                    hp,
+                    ...stats,
+                    types,
+                    abilities,
+                    inventory: inv,
+                    statuses,
+                    turnTaken: false,
+                    _ppRowId: rowIdOf(ppRow)
+                };
+            }
+
             function hasNegativeStatus(char) {
-                if (!char.statuses || char.statuses.length === 0) return false;
-                const negativeStatusNames = ['Burned', 'Poisoned', 'Paralyzed', 'Asleep', 'Frozen'];
-                return char.statuses.some(s => negativeStatusNames.includes(s.name) || (s.statEffect && Object.values(s.statEffect).includes('negative')));
+                if (!char.statuses || !char.statuses.length) return false;
+                const bad = new Set(['Burned', 'Poisoned', 'Paralyzed', 'Asleep', 'Frozen']);
+                return char.statuses.some(s => bad.has(s.name));
             }
 
-            // --- View Management ---
-            function logAction(message) {
-                const timestamp = new Date().toLocaleTimeString();
-                ELS.logBox
-                    .val(`[${timestamp}] ${message}\n` + ELS.logBox.val())
-                    .scrollTop(0);
-            }
-            function renderAll() { renderCharacters(); renderTurnOrder(); renderActionBoard(); }
+            function typePill(t) { return `<span class="inline-block text-xs px-2 py-0.5 rounded-full bg-gray-700 mr-1">${t}</span>`; }
+
+            // ==== Renderers (minimal – we reuse your page structure) ==================================
             function renderCharacters() {
-			const playersHtml = players.map(p => {
-			const glowClass = hasNegativeStatus(p) ? 'negative-status-glow' : '';
-			return `<div class="flex items-center space-x-2">
-			<div class="portrait ${glowClass}" data-id="${p.id}">${getPokemonIcon(p.name)}</div>
-			<div class="flex-grow">
-			<h3>${p.name} (Lvl ${p.level})</h3>
-			<span class="text-xs">HP: ${p.hp}</span>
-			</div>
-			</div>`;
-			}).join('');
-			ELS.playersList.html(playersHtml);
-			
-			
-			const enemiesHtml = enemies.map(e => {
-			const glowClass = hasNegativeStatus(e) ? 'negative-status-glow' : '';
-			const levelText = isDM ? `(Lvl ${e.level})` : '';
-			const hpText = isDM ? `<span class="text-xs">HP: ${e.hp}</span>` : '';
-			const dmControls = isDM ? `<div class="flex justify-end items-center space-x-2"><button class="remove-enemy-btn px-2 py-1 bg-red-600 rounded-md text-xs" data-id="${e.id}">X</button></div>` : '';
-			return `<div class="flex items-center space-x-2">
-			<div class="flex-grow text-right">
-			<h3>${e.name} ${levelText}</h3>
-			<div class="flex justify-end items-center space-x-2">${hpText}${dmControls}</div>
-			</div>
-			<div class="portrait ${glowClass}" data-id="${e.id}">${getPokemonIcon(e.name)}</div>
-			</div>`;
-			}).join('');
-			ELS.enemiesList.html(enemiesHtml);
-            }
-            function renderTurnOrder() {
-                turnOrder = [...players, ...enemies].sort((a, b) => getEffectiveStat(b, 'spd').value - getEffectiveStat(a, 'spd').value);
-                turnOrder.push({ id: 'dm', name: 'DM', isDM: true });
-
-                const turnOrderHtml = turnOrder.map((char, index) => {
-                    let classes = 'turn-bubble';
-                    if (index === currentTurnIndex) classes += ' current'; else if (index === (currentTurnIndex - 1 + turnOrder.length) % turnOrder.length) classes += ' last'; else if (index === (currentTurnIndex + 1) % turnOrder.length) classes += ' next';
-                    const initial = char.isDM ? `<i class="fas fa-crown"></i>` : getPokemonIcon(char.name);
-                    return `<div class="turn-bubble-container"><div class="${classes}">${initial}</div><span class="turn-bubble-popover">${char.name}</span></div>`;
+                // Players
+                // Render players list. Display the human name (trainer) as the main heading and Pokémon name below.
+                const playersHtml = players.map(p => {
+                    const glow = hasNegativeStatus(p) ? 'negative-status-glow' : '';
+                    const removeBtn = isDM ? `<button class="remove-player-btn px-2 py-1 bg-red-600 rounded-md text-xs ml-2" data-player-id="${p.playerId}" title="Remove Player"><i class="fa-solid fa-xmark"></i></button>` : '';
+                    return `<div class="flex items-center space-x-2">
+                          <div class="portrait ${glow}" data-id="${p.id}"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png"/></div>
+                          <div class="flex-grow">
+                            <h3>${p.humanName || p.name}</h3>
+                            <div class="text-xs text-gray-400">${p.name} (Lvl ${p.level})</div>
+                            <span class="text-xs">HP: ${p.hp}</span>
+                          </div>
+                          ${removeBtn}
+                        </div>`;
                 }).join('');
-                ELS.turnOrderContainer.html(turnOrderHtml);
+                ELS.playersList.html(playersHtml);
 
-                const currentChar = turnOrder[currentTurnIndex];
-                isDMTurn = currentChar?.isDM ?? false;
-                ELS.body.toggleClass('dm-turn', isDMTurn);
-                ELS.currentTurnDisplay.text(`Active Turn: ${currentChar ? currentChar.name : 'Start'}`);
+                // Enemies (DM roster)
+                const enemiesHtml = enemies.map(e => {
+                    const glow = hasNegativeStatus(e) ? 'negative-status-glow' : '';
+                    const dmX = isDM ? `<div class="flex justify-end items-center space-x-2"><button class="remove-enemy-btn px-2 py-1 bg-red-600 rounded-md text-xs" data-row="${e._ppRowId}">X</button></div>` : '';
+                    // For players viewing enemies, hide level and HP; for DM, show all details.
+                    const levelInfo = isDM ? `(Lvl ${e.level})` : '';
+                    const hpInfo = isDM ? `<span class="text-xs">HP: ${e.hp}</span>` : '';
+                    return `<div class="flex items-center space-x-2">
+                          <div class="flex-grow text-right">
+                            <h3>${e.name}</h3>
+                            <div class="text-xs text-gray-400">${levelInfo}</div>
+                            <div class="flex justify-end items-center space-x-2">${hpInfo}${dmX}</div>
+                          </div>
+                          <div class="portrait ${glow}" data-id="${e.id}"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${e.pokemonId}.png"/></div>
+                        </div>`;
+                }).join('');
+                ELS.enemiesList.html(enemiesHtml);
             }
+
+            function buildTurnOrder() {
+                turnOrder = [...players, ...enemies].sort((a, b) => (b.spd?.val || 0) - (a.spd?.val || 0));
+                turnOrder.push({ id: 'dm', name: 'DM', isDM: true });
+            }
+            function renderTurn() {
+                buildTurnOrder();
+                const bubbles = turnOrder.map((c, idx) => {
+                    let cls = 'turn-bubble';
+                    if (idx === currentTurnIndex) cls += ' current';
+                    else if (idx === (currentTurnIndex - 1 + turnOrder.length) % turnOrder.length) cls += ' last';
+                    else if (idx === (currentTurnIndex + 1) % turnOrder.length) cls += ' next';
+                    const icon = c.isDM ? '<i class="fas fa-crown"></i>' : `<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${c.pokemonId}.png"/>`;
+                    return `<div class="turn-bubble-container"><div class="${cls}">${icon}</div><span class="turn-bubble-popover">${c.name}</span></div>`;
+                }).join('');
+                ELS.turnOrderContainer.html(bubbles);
+                const cur = turnOrder[currentTurnIndex];
+                isDMTurn = !!cur?.isDM;
+                ELS.body.toggleClass('dm-turn', isDMTurn);
+                ELS.currentTurnDisplay.text(`Active Turn: ${cur ? cur.name : 'Start'}`);
+            }
+
+            function renderAll() { renderCharacters(); renderTurn(); renderActionBoard(); }
+
             function renderActionBoard() {
                 ELS.actionBoard.empty();
-                const activeChar = turnOrder[currentTurnIndex];
-                const isEnemyTurn = !!activeChar && enemies.some(e => e.id === activeChar.id);
+                const cur = turnOrder[currentTurnIndex];
+                const isEnemyTurn = !!cur && enemies.some(e => e.id === cur.id);
                 if (isDM) {
-                    ELS.actionBoard.append(`
-                                <button id="dm-force-turn-btn" class="col-span-1 px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Force DM Turn"><i class="fas fa-crown"></i></button>
-                                <button id="dm-reset-turns-btn" class="col-span-1 px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="Reset All Turns"><i class="fas fa-redo"></i></button>
-                                <button id="dm-end-turn-btn" class="col-span-1 px-2 py-2 bg-purple-600 rounded-lg hover:bg-purple-700" title="End DM Turn"><i class="fas fa-forward"></i></button>
-                            `);
+                    ELS.actionBoard.append(`<button id="dm-force-turn-btn" class="col-span-1 px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Force DM Turn"><i class="fas fa-crown"></i></button>
+                                                <button id="dm-reset-turns-btn" class="col-span-1 px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="Reset All Turns"><i class="fas fa-redo"></i></button>
+                                                <button id="dm-end-turn-btn" class="col-span-1 px-2 py-2 bg-purple-600 rounded-lg hover:bg-purple-700" title="End DM Turn"><i class="fas fa-forward"></i></button>`);
                     if (isEnemyTurn) {
-                        ELS.actionBoard.append(`
-                          <button id="moves-button" class="col-span-1 px-2 py-2 bg-blue-600 rounded-lg hover:bg-blue-700" title="Moves"><i class="fa-solid fa-wand-sparkles"></i></button>
-                          <button id="inventory-button" class="col-span-1 px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>
-                        `);
+                        ELS.actionBoard.append(`<button id="moves-button" class="col-span-1 px-2 py-2 bg-blue-600 rounded-lg hover:bg-blue-700" title="Moves"><i class="fa-solid fa-wand-sparkles"></i></button>
+                                                   <button id="inventory-button" class="col-span-1 px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>`);
                     }
-                    $('#dm-force-turn-btn').on('click', () => {
-                        const dmIndex = turnOrder.findIndex(c => c.id === 'dm');
-                        if (dmIndex > -1) {
-                            currentTurnIndex = dmIndex;
-                            logAction("DM forced their turn.");
-                            renderAll();
-                        }
-                    });
-                    $('#dm-reset-turns-btn').on('click', () => {
-                        currentTurnIndex = 0;
-                        players.forEach(p => p.turnTaken = false);
-                        enemies.forEach(e => e.turnTaken = false);
-                        logAction("DM reset all character turns.");
-                        renderAll();
-                    });
-                    $('#dm-end-turn-btn').on('click', () => {
-                        logAction("DM ended their turn.");
-                        currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
-                        players.forEach(p => p.turnTaken = false);
-                        enemies.forEach(e => e.turnTaken = false);
-                        renderAll();
-                    });
                 } else {
-                    const isPlayerTurn = !isDMTurn && players.some(p => p.id === turnOrder[currentTurnIndex]?.id && p.id === currentPlayerId);
+                    const isPlayerTurn = !isDMTurn && players.some(p => p.id === cur?.id && p.playerId === currentPlayerId);
                     if (isPlayerTurn) {
-                        ELS.actionBoard.append(`
-                            <button id="moves-button" class="px-2 py-2 bg-blue-600 rounded-lg hover:bg-blue-700" title="Moves"><i class="fa-solid fa-wand-sparkles"></i></button>
-                            <button id="inventory-button" class="px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>
-                            <button id="end-turn-button" class="px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="End Turn"><i class="fas fa-forward"></i></button>
-                        `);
-                        $('#end-turn-button').on('click', () => {
-                            const previousChar = turnOrder[currentTurnIndex];
-                            if (previousChar) {
-                                previousChar.turnTaken = true;
-                                logAction(`${previousChar.name} ended their turn.`);
-                            }
-                            currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
-                            renderAll();
-                        });
+                        ELS.actionBoard.append(`<button id="moves-button" class="px-2 py-2 bg-blue-600 rounded-lg hover:bg-blue-700" title="Moves"><i class="fa-solid fa-wand-sparkles"></i></button>
+                                                   <button id="inventory-button" class="px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>
+                                                   <button id="end-turn-button" class="px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="End Turn"><i class="fas fa-forward"></i></button>`);
                     } else {
                         ELS.actionBoard.append(`<div class="col-span-3 text-center text-gray-400">Waiting for your turn...</div>`);
                     }
                 }
             }
-            // --- Game Logic ---
-            function rollDie(sides, rollerType) { const roller = rollerType === 'player' ? (turnOrder[currentTurnIndex]?.name || "Player") : "DM"; const result = Math.floor(Math.random() * sides) + 1; ELS.diceDisplay.text(result).removeClass('dice-animate'); void ELS.diceDisplay[0].offsetWidth; ELS.diceDisplay.addClass('dice-animate'); logAction(`${roller} rolled a d${sides} and got ${result}.`); }
 
-            // --- Modals ---
-            function openModal(modalId) { $(`#${modalId}-modal`).addClass('flex'); }
-            function closeModal(modalId) { $(`#${modalId}-modal`).removeClass('flex'); }
-            function openAttackModal() {
-                const player = players.find(p => p.id === currentPlayerId); if (!player) return;
-                const attacksHtml = player.abilities.map(attack => { const canUse = player.level >= attack.levelRequired; return `<li><button class="select-attack-btn p-2 rounded-lg w-full text-left ${canUse ? 'bg-blue-800 hover:bg-blue-700' : 'bg-gray-600 cursor-not-allowed'}" ${!canUse ? 'disabled' : ''} data-attack-name="${attack.name}"><i class="fas fa-magic icon"></i>${attack.name}</button></li>`; }).join('');
-                $('#attack-list').html(attacksHtml); openModal('attack');
-            }
-            function selectTargetsModal(attackName) { closeModal('attack'); $('#targets-modal-title').text(`Target for ${attackName}`); const targetsHtml = enemies.map(enemy => `<button class="target-btn w-full px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600" data-attack-name="${attackName}" data-target-name="${enemy.name}">${enemy.name}</button>`).join(''); $('#targets-list-container').html(targetsHtml); openModal('targets'); }
-            function openInventoryModal(targetId) {
-                let char = null;
-                if (targetId) {
-                    char = players.find(p => p.id === targetId) || enemies.find(e => e.id === targetId);
-                } else if (isDM) {
-                    const active = turnOrder[currentTurnIndex];
-                    char = players.find(p => p.id === active?.id) || enemies.find(e => e.id === active?.id);
-                } else {
-                    char = players.find(p => p.id === currentPlayerId);
-                }
-                if (!char) return;
-
-                const isOwnerOnTurn = (!isDM && char.id === currentPlayerId);
-                const items = char.inventory || [];
-
-                const inventoryHtml = items.length
-                    ? items.map(item => {
-                        const actions = isOwnerOnTurn
-                            ? `<div class="space-x-2">
-                       <button class="use-item-btn px-2 py-1 bg-blue-600 rounded-md text-xs" data-item="${item}">Use</button>
-                       <button class="share-item-btn px-2 py-1 bg-green-600 rounded-md text-xs" data-item="${item}">Share</button>
-                     </div>`
-                            : '';
-                        return `<li class="p-2 rounded-lg bg-gray-700 flex justify-between items-center">
-                          <span>${getItemIcon(item)}${item}</span>
-                          ${actions}
-                        </li>`;
-                    }).join('')
-                    : '<li class="p-2 rounded-lg bg-gray-700 text-center text-xs text-gray-300">Empty</li>';
-
-                $('#inventory-list').html(inventoryHtml);
-                openModal('inventory');
-            }
-            function openUseItemModal(item) { closeModal('inventory'); $('#share-item-title').text(`Use "${item}" on...`); const allTargets = [...players, ...enemies]; const listHtml = allTargets.map(target => `<button class="confirm-use-item-btn w-full px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500" data-item="${item}" data-target-id="${target.id}">${target.name}</button>`).join(''); $('#share-player-list').html(listHtml); openModal('share-item'); }
-            function openShareModal(item) { closeModal('inventory'); itemToShare = item; const listHtml = players.filter(p => p.id !== currentPlayerId).map(p => `<button class="confirm-share-btn w-full px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500" data-recipient-id="${p.id}">${p.name}</button>`).join(''); $('#share-player-list').html(listHtml); $('#share-item-title').text(`Share "${item}" with...`); openModal('share-item'); }
-            function openMovesModal(targetId) {
-                // Pick which character to show:
-                // - If DM and there's an active turn, show that active character (enemy or player)
-                // - Else show the current player
-                let char = null;
-                if (targetId) {
-                    char = players.find(p => p.id === targetId) || enemies.find(e => e.id === targetId);
-                } else if (isDM) {
-                    const active = turnOrder[currentTurnIndex];
-                    char = players.find(p => p.id === active?.id) || enemies.find(e => e.id === active?.id);
-                } else {
-                    char = players.find(p => p.id === currentPlayerId);
-                }
-                if (!char) return;
-
-                // SPECIAL MOVE (top)
-                const s = char.specialMove;
-                if (s) {
-                    const specialCanUse = (char.level >= (s.levelRequired ?? 1));
-                    $('#special-move').html(`
-                      <div class="move-card ${specialCanUse ? '' : 'move-locked'}">
-                        <div class="flex items-center justify-between">
-                          <span class="move-title">⭐ ${s.name}</span>
-                          <span class="move-meta">Req Lvl ${s.levelRequired ?? 1}</span>
-                        </div>
-                        <p class="text-sm mt-1">${s.description || ''}</p>
-                      </div>
-                    `);
-                } else {
-                    $('#special-move').empty();
-                }
-
-                // REGULAR MOVES (sorted by required level asc)
-                const sortedMoves = [...(char.abilities || [])].sort((a, b) => {
-                    const al = Number.isFinite(+a.levelRequired) ? +a.levelRequired : 1;
-                    const bl = Number.isFinite(+b.levelRequired) ? +b.levelRequired : 1;
-                    return (al - bl) || a.name.localeCompare(b.name);
-                });
-                const movesHtml = sortedMoves.map(m => {
-                    const canUse = char.level >= (m.levelRequired ?? 1);
-                    return `
-                      <li>
-                        <div class="move-card ${canUse ? '' : 'move-locked'}">
-                          <div class="flex items-center justify-between">
-                            <span class="move-title">${m.name}</span>
-                            <span class="move-meta">Req Lvl ${m.levelRequired ?? 1}</span>
-                          </div>
-                          <p class="text-sm mt-1">${m.description || ''}</p>
-                        </div>
-                      </li>
-                    `;
+            // ==== Selection UI =======================================================================
+            function renderCharacterSelect() {
+                if (!ELS.characterList.length) return;
+                const playerRows = cache.Players.filter(p => String(p.Type).toLowerCase() === 'player');
+                const byPlayer = new Map();
+                cache.PlayerPokemon.forEach(pp => { const pid = Number(pp.PlayerId); if (!byPlayer.has(pid)) byPlayer.set(pid, pp); });
+                const cards = playerRows.map(p => {
+                    const pp = byPlayer.get(Number(p.Id));
+                    if (!pp) return '';
+                    const pk = cache.Pokemon.find(x => Number(x.Id) === Number(pp.PokemonId));
+                    const imgId = pk?.Id || pp.PokemonId;
+                    return `<button class="character-select-btn p-4 bg-gray-700 rounded-lg shadow-lg hover:bg-gray-600" data-player-id="${p.Id}">
+                          <img class="w-20 h-20 mx-auto" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${imgId}.png"/>
+                          <div class="mt-2 text-sm font-bold text-center">${pk?.Name || 'Unknown'}</div>
+                          <div class="text-xs text-center text-gray-300">${p.Name}</div>
+                        </button>`;
                 }).join('');
-                $('#moves-list').html(movesHtml);
-
-                // Open
-                openModal('moves');
-            }
-            
-            function openTeamPouchModal() {
-                const pouchHolder = players.find(p => p.inventory && p.inventory.includes('Team Pouch'));
-                const isPlayerTurn = players.some(p => p.id === turnOrder[currentTurnIndex]?.id && p.id === currentPlayerId);
-                const canManagePouch = isDM || (pouchHolder && pouchHolder.id === currentPlayerId && isPlayerTurn);
-
-                // Render coins
-                $('#pouch-coins-display').text(teamPouch.coins);
-                if (isDM) {
-                    $('#dm-pouch-coins-input').val(teamPouch.coins).show();
-                    $('#pouch-coins-display').hide();
-                    $('#dm-pouch-controls').show();
-                    $('#dm-add-pouch-item-select').html(Object.keys(ALL_ITEMS).filter(i => i !== 'Team Pouch').map(i => `<option value="${i}">${i}</option>`).join(''));
-                } else {
-                    $('#dm-pouch-coins-input').hide();
-                    $('#pouch-coins-display').show();
-                    $('#dm-pouch-controls').hide();
-                }
-
-                // Render items
-                const teamItemsHtml = teamPouch.items.length
-                    ? teamPouch.items.map(item => {
-                        const transferButton = canManagePouch
-                            ? `<button class="transfer-from-pouch-btn px-2 py-1 bg-blue-600 rounded-md text-xs" data-item="${item}" title="Transfer"><i class="fas fa-exchange-alt"></i></button>`
-                            : '';
-                        return `<li class="p-2 rounded-lg bg-gray-700 flex justify-between items-center">
-                                  <span>${getItemIcon(item)}${item}</span>
-                                  ${transferButton}
-                                </li>`;
-                    }).join('')
-                    : '<li class="p-2 rounded-lg bg-gray-700 text-center text-xs text-gray-300">Empty</li>';
-                $('#pouch-inventory-list').html(teamItemsHtml);
-
-                openModal('team-pouch');
+                ELS.characterList.html(cards);
             }
 
-            function openTransferFromPouchModal(item) {
-                closeModal('team-pouch');
-                itemToTransferFromPouch = item;
-                const allTargets = [...players, ...enemies];
-                const listHtml = allTargets.map(p =>
-                    `<button class="confirm-transfer-from-pouch-btn w-full px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500" data-recipient-id="${p.id}">${p.name}</button>`
-                ).join('');
-                $('#transfer-from-pouch-player-list').html(listHtml);
-                $('#transfer-from-pouch-title').text(`Transfer "${item}" to...`);
-                openModal('transfer-from-pouch');
-            }
-
-
-            // --- PROFILE MODAL ---
-            function openProfileModal(id) {
-		    const char = players.find(p => p.id === id) || enemies.find(e => e.id === id);
-		    if (!char) return;
-		
-		    $('#profile-modal').attr('data-char-id', id);
-		    $('#profile-name').text(`${char.name} (Lvl ${char.level})`);
-		    $('#profile-portrait').html(getPokemonIcon(char.name));
-		
-		    $('#profile-types').html(`Type: ${char.types.map(t => getTypeIcon(t)).join('')}`);
-		
-		    // STATS
-		    const statNames = { hp: 'HP', atk: 'ATK', spAtk: 'SP.A', def: 'DEF', spDef: 'SP.D', spd: 'SPD', acc: 'AC' };
-		    const statIcons = { hp: 'fas fa-heart text-red-500', atk: 'fas fa-khanda text-orange-400', spAtk: 'fas fa-magic text-purple-400', def: 'fas fa-shield-alt text-blue-400', spDef: 'fas fa-shield-virus text-blue-400', spd: 'fas fa-running text-green-400', acc: 'fas fa-crosshairs text-yellow-300' };
-		    const statsHtml = Object.keys(statNames).map(statKey => {
-		        const { value: effectiveValue, statusEffect } = getEffectiveStat(char, statKey);
-		        const baseValue = (statKey === 'hp') ? char.hp : char[statKey].val;
-		        let statClass = '';
-		        if (statusEffect === 'positive') statClass = 'stat-positive'; else if (statusEffect === 'negative') statClass = 'stat-negative';
-		        const valueDisplay = (isDM || (!isDM && char.id === currentPlayerId))
-		          ? `<input type="number" class="dm-stat-input w-16 px-1 text-center bg-gray-700 rounded border border-gray-600"
-		                    value="${baseValue}" data-stat-key="${statKey}" min="0">`
-		          : `<span class="${statClass} ml-1">${effectiveValue}</span>`;
-		        const growthDisplay = isDM && statKey !== 'hp' && char[statKey] ? `(+${char[statKey].growth})` : '';
-		        return `<div class="stat-box col-span-1"><i class="${statIcons[statKey]} icon"></i><span>${statNames[statKey]}:</span> ${valueDisplay} ${growthDisplay}</div>`;
-		    }).join('');
-		    $('#profile-stats')
-    			 .addClass('grid grid-cols-2')
-		      .html(statsHtml);
-		
-		    // INVENTORY
-		    const inventoryHtml = (char.inventory || []).map((item, index) => {
-		        const dmButtons = isDM ? `<div class="space-x-1"><button class="dm-transfer-item-btn px-2 py-1 bg-blue-600 rounded text-xs" data-item-name="${item}"><i class="fas fa-exchange-alt"></i></button><button class="dm-remove-item-btn px-2 py-1 bg-red-600 rounded text-xs" data-item-index="${index}"><i class="fas fa-times"></i></button></div>` : '';
-		        return `<div class="p-1 rounded bg-gray-800 flex justify-between items-center text-xs"><span>${getItemIcon(item)}${item}</span>${dmButtons}</div>`;
-		    }).join('');
-		    $('#profile-inventory').html(inventoryHtml || '<p class="text-xs text-gray-500 text-center">Empty</p>');
-		
-		    // STATUSES
-		    const statusesHtml = (char.statuses || []).map((s, index) => {
-		        const dmButton = isDM ? `<button class="dm-remove-status-btn ml-2 text-red-500" data-status-index="${index}">&times;</button>` : '';
-		        return `<span class="px-2 py-1 bg-gray-800 text-xs rounded-full flex items-center">${getStatusIcon(s.name)} ${s.name} (${s.duration})${dmButton}</span>`;
-		    }).join('');
-		    $('#profile-statuses').html(statusesHtml || '<p class="text-xs text-gray-500 text-center">None</p>');
-		
-		    // TYPE EFFECTIVENESS (RESTORED)
-		    const typeInfoContainer = $('#type-info');
-		    let strengthsHtml = '', weaknessesHtml = '', immunitiesHtml = '';
-		    char.types.forEach(type => {
-		        const typeData = typeEffectiveness[type.toLowerCase()];
-		        if (!typeData) return;
-		        if (typeData.strengths.length > 0) strengthsHtml += `<p class="text-sm font-bold mt-2">${typeData.name} Strong Against:</p><div class="flex flex-wrap gap-1">${typeData.strengths.map(s => getTypeIcon(s)).join('')}</div>`;
-		        if (typeData.weaknesses.length > 0) weaknessesHtml += `<p class="text-sm font-bold mt-2">${typeData.name} Weak Against:</p><div class="flex flex-wrap gap-1">${typeData.weaknesses.map(w => getTypeIcon(w)).join('')}</div>`;
-		        if (typeData.immunities && typeData.immunities.length > 0) immunitiesHtml += `<p class="text-sm font-bold mt-2">${typeData.name} Immune To:</p><div class="flex flex-wrap gap-1">${typeData.immunities.map(i => getTypeIcon(i)).join('')}</div>`;
-		    });
-		    if (strengthsHtml || weaknessesHtml || immunitiesHtml) {
-		        typeInfoContainer.html(`<h3 class="text-lg mt-4 mb-2 text-center border-t border-gray-600 pt-2">Type Effectiveness</h3>${strengthsHtml}${weaknessesHtml}${immunitiesHtml}`);
-		    } else {
-		        typeInfoContainer.html('');
-		    }
-		
-		    // DM CONTROLS
-		    if (isDM) {
-		        $('#dm-profile-edit').removeClass('hidden');
-		        $('#dm-add-item-select').html(Object.keys(ALL_ITEMS).map(i => `<option value="${i}">${i}</option>`).join(''));
-		        $('#dm-add-status-select').html(ALL_STATUSES.map(s => `<option value="${s.name}">${s.name}</option>`).join(''));
-		    } else {
-		        $('#dm-profile-edit').addClass('hidden');
-		    }
-		
-		    const isEnemy = enemies.some(e => e.id === id);
-		    if (isEnemy && !isDM) {
-		        $('#profile-name').text(char.name);
-		        $('#profile-portrait').html(getPokemonIcon(char.name));
-		        $('#profile-stats').removeClass('grid grid-cols-2').html('<p class="text-xs text-gray-500 text-center">Hidden</p>');
-		        $('#profile-inventory').html('<p class="text-xs text-gray-500 text-center">Hidden</p>');
-		        $('#profile-statuses').html('<p class="text-xs text-gray-500 text-center">Hidden</p>');
-		        $('#dm-profile-edit').addClass('hidden');
-		    }
-		
-		    openModal('profile');
-		}
-
-            // --- Event Handlers ---
-            $('#dice-buttons').on('click', 'button', function () { rollDie($(this).data('sides'), isDM ? 'dm' : 'player'); });
-
-            // Only allow DM to use turn checkboxes and enemy removal buttons
-            // Replace the whole "Only allow DM to use turn checkboxes and enemy removal buttons" block with this:
-
-            ELS.playersList.add(ELS.enemiesList).on('change', '.turn-taken-checkbox', function () {
-                if (!isDM) return;
-                const charId = $(this).data('id');
-                const isChecked = $(this).is(':checked');
-                const char = players.find(p => p.id === charId) || enemies.find(e => e.id === charId);
-                if (char) {
-                    char.turnTaken = isChecked;
-                    logAction(`DM set ${char.name} turn: ${isChecked}`);
-                }
-            });
-
-            ELS.enemiesList.on('click', '.remove-enemy-btn', function () {
-                if (!isDM) return;
-                const enemyId = $(this).data('id');
-                const removed = enemies.find(e => e.id === enemyId);
-                enemies = enemies.filter(e => e.id !== enemyId);
-                renderAll();
-                if (removed) logAction(`DM removed ${removed.name}.`);
-            });
-
-            $('.modal').on('click', '.close-button', function () { $(this).closest('.modal').removeClass('flex'); });
-            
-            $('body').on('click', '#team-pouch-button', openTeamPouchModal);
-
-
-            // Player Actions
-            ELS.actionBoard.on('click', '#end-turn-button', function () {
-                const previousChar = turnOrder[currentTurnIndex];
-                if (previousChar) {
-                    previousChar.turnTaken = true;
-                    logAction(`${previousChar.name} ended their turn.`);
-                }
-                currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
-                renderAll();
-            });
-            ELS.actionBoard.on('click', '#dm-end-turn-btn', function () {
-                logAction("DM ended their turn.");
-                currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
-                players.forEach(p => p.turnTaken = false);
-                enemies.forEach(e => e.turnTaken = false);
-                renderAll();
-            });
-
-            $('#submit-new-enemy').on('click', function () {
-                if (!isDM) return;
-
-                const species = $('#pokemon-select').val();
-                const name = ($('#enemy-name-input').val() || '').trim() || species;
-                const level = parseInt($('#enemy-level-input').val(), 10) || 1;
-                const hp = parseInt($('#enemy-hp-input').val(), 10) || 50;
-
-                const tpl = SPECIES_TEMPLATES[species] || {
-                    types: ['normal'],
-                    baseStats: { atk: 20, spAtk: 20, def: 20, spDef: 20, spd: 20, acc: 85 }
-                };
-
-                const id = 'e' + Date.now();
-                const mk = (v) => ({ val: v, growth: 0, status: null });
-
-                const newEnemy = {
-                    id, name, level, hp,
-                    atk: mk(tpl.baseStats.atk),
-                    spAtk: mk(tpl.baseStats.spAtk),
-                    def: mk(tpl.baseStats.def),
-                    spDef: mk(tpl.baseStats.spDef),
-                    spd: mk(tpl.baseStats.spd),
-                    acc: mk(tpl.baseStats.acc),
-                    types: tpl.types,
-                    turnTaken: false,
-                    statuses: [],
-                    inventory: []
-                };
-
-                enemies.push(newEnemy);
-                closeModal('add-enemy');
-                renderAll();
-                logAction(`DM added enemy ${name} (Lvl ${level}).`);
-                $('#enemy-name-input').val('');
-            });
-
-
-
-            $('#targets-list-container').on('click', '.target-btn', function () { logAction(`${players.find(p => p.id === currentPlayerId).name} attacked ${$(this).data('target-name')} with ${$(this).data('attack-name')}`); closeModal('targets'); });
-            $('#inventory-list').on('click', '.use-item-btn', function () { openUseItemModal($(this).data('item')); });
-            $('#inventory-list').on('click', '.share-item-btn', function () { openShareModal($(this).data('item')); });
-            $('#share-player-list').on('click', '.confirm-use-item-btn', function () { const item = $(this).data('item'); const targetId = $(this).data('target-id'); const user = players.find(p => p.id === currentPlayerId); const target = players.find(p => p.id === targetId) || enemies.find(e => e.id === targetId); if (user && target) logAction(`${user.name} used ${item} on ${target.name}.`); closeModal('share-item'); });
-            $('#share-player-list').on('click', '.confirm-share-btn', function () { const recipientId = $(this).data('recipient-id'); const sharer = players.find(p => p.id === currentPlayerId); const recipient = players.find(p => p.id === recipientId); if (sharer && recipient && itemToShare) { sharer.inventory = sharer.inventory.filter(i => i !== itemToShare); recipient.inventory.push(itemToShare); logAction(`${sharer.name} shared ${itemToShare} with ${recipient.name}.`); closeModal('share-item'); } });
-            ELS.playersList.add(ELS.enemiesList).on('click', '.portrait', function () { openProfileModal($(this).data('id')); });
-            $('#add-enemy-button').on('click', () => {
-                if (!isDM) return;
-                openModal('add-enemy');
-            });
-            $('#log-header').on('click', () => { $('#log-content').toggleClass('hidden'); $('#log-toggle-icon').text($('#log-content').hasClass('hidden') ? '+' : '-'); });
-            $('body').on('click', '.character-select-btn', function () { const selectedId = $(this).data('id'); startGame(selectedId); });
-            $('#reset-selections-btn').on('click', function () { localStorage.removeItem('pokeQuestTakenRoles'); location.reload(); });
-
-            // --- TEAM POUCH HANDLERS ---
-            $('#dm-pouch-coins-input').on('change', function() {
-                if (!isDM) return;
-                const newAmount = parseInt($(this).val(), 10);
-                if (!isNaN(newAmount)) {
-                    teamPouch.coins = newAmount;
-                    logAction(`DM set team coins to ${newAmount}.`);
-                }
-            });
-
-            $('#dm-add-pouch-item-btn').on('click', function() {
-                if (!isDM) return;
-                const itemToAdd = $('#dm-add-pouch-item-select').val();
-                if (itemToAdd) {
-                    teamPouch.items.push(itemToAdd);
-                    logAction(`DM added ${itemToAdd} to the Team Pouch.`);
-                    openTeamPouchModal(); // Re-render the modal
-                }
-            });
-
-            $('#pouch-inventory-list').on('click', '.transfer-from-pouch-btn', function() {
-                const pouchHolder = players.find(p => p.inventory && p.inventory.includes('Team Pouch'));
-                const isPlayerTurn = players.some(p => p.id === turnOrder[currentTurnIndex]?.id && p.id === currentPlayerId);
-                const canManagePouch = isDM || (pouchHolder && pouchHolder.id === currentPlayerId && isPlayerTurn);
-                if (!canManagePouch) return;
-                const item = $(this).data('item');
-                openTransferFromPouchModal(item);
-            });
-
-            $('#transfer-from-pouch-player-list').on('click', '.confirm-transfer-from-pouch-btn', function() {
-                if (!itemToTransferFromPouch) return;
-                const pouchHolder = players.find(p => p.inventory && p.inventory.includes('Team Pouch'));
-                const isPlayerTurn = players.some(p => p.id === turnOrder[currentTurnIndex]?.id && p.id === currentPlayerId);
-                const canManagePouch = isDM || (pouchHolder && pouchHolder.id === currentPlayerId && isPlayerTurn);
-                if (!canManagePouch) return;
-
-                const recipientId = $(this).data('recipient-id');
-                const recipient = players.find(p => p.id === recipientId) || enemies.find(e => e.id === recipientId);
-                
-                if (recipient) {
-                    const itemIndex = teamPouch.items.indexOf(itemToTransferFromPouch);
-                    if (itemIndex > -1) {
-                        teamPouch.items.splice(itemIndex, 1);
-                        if (!recipient.inventory) recipient.inventory = [];
-                        recipient.inventory.push(itemToTransferFromPouch);
-                        const managerName = isDM ? 'DM' : pouchHolder.name;
-                        logAction(`${managerName} transferred ${itemToTransferFromPouch} to ${recipient.name} from the Team Pouch.`);
-                        itemToTransferFromPouch = null;
-                        closeModal('transfer-from-pouch');
-                    }
-                }
-            });
-
-
-            // --- DM PROFILE EDITING HANDLERS ---
-			$('#profile-stats').on('change', '.dm-stat-input', function () {
-			  const charId = $('#profile-modal').attr('data-char-id');
-			  const statKey = $(this).data('stat-key');
-			  const newValue = parseInt($(this).val(), 10);
-			  const char = players.find(p => p.id === charId) || enemies.find(e => e.id === charId);
-			  if (!char || isNaN(newValue)) return;
-			
-			  // Permission: DM can edit anyone; players can edit ONLY their own character
-			  if (!isDM && char.id !== currentPlayerId) {
-			    // revert the input to the current value if not allowed
-			    $(this).val(statKey === 'hp' ? char.hp : (char[statKey]?.val ?? 0));
-			    return;
-			  }
-			
-			  if (statKey === 'hp') { char.hp = newValue; }
-			  else if (char[statKey]) { char[statKey].val = newValue; }
-			
-			  const who = isDM ? 'DM' : (players.find(p => p.id === currentPlayerId)?.name || 'Player');
-			  logAction(`${who} set ${char.name}'s ${statKey.toUpperCase()} to ${newValue}.`);
-			
-			  renderAll();            // refresh lists/turn order
-			  openProfileModal(charId); // refresh the open profile with updated values
-			});
-            $('#dm-add-item-btn').on('click', function () {
-                const charId = $('#profile-modal').attr('data-char-id'); const char = players.find(p => p.id === charId) || enemies.find(e => e.id === charId);
-                const itemToAdd = $('#dm-add-item-select').val();
-                if (char) { if (!char.inventory) char.inventory = []; char.inventory.push(itemToAdd); logAction(`DM gave ${itemToAdd} to ${char.name}.`); openProfileModal(charId); }
-            });
-            $('#profile-inventory').on('click', '.dm-remove-item-btn', function () {
-                const charId = $('#profile-modal').attr('data-char-id'); const char = players.find(p => p.id === charId) || enemies.find(e => e.id === charId);
-                const itemIndex = $(this).data('item-index');
-                if (char && char.inventory[itemIndex] !== undefined) { const removedItem = char.inventory.splice(itemIndex, 1); logAction(`DM removed ${removedItem} from ${char.name}.`); openProfileModal(charId); }
-            });
-            $('#dm-add-status-btn').on('click', function () {
-                const charId = $('#profile-modal').attr('data-char-id'); const char = players.find(p => p.id === charId) || enemies.find(e => e.id === charId);
-                const statusName = $('#dm-add-status-select').val(); const duration = parseInt($('#dm-status-duration-input').val(), 10);
-                if (char && statusName && !isNaN(duration)) {
-                    if (!char.statuses) char.statuses = [];
-                    if (char.statuses.find(s => s.name === statusName)) return; // Avoid duplicate statuses
-                    const statusTemplate = ALL_STATUSES.find(s => s.name === statusName);
-                    const newStatus = { ...statusTemplate, duration };
-                    char.statuses.push(newStatus); logAction(`DM applied ${statusName} to ${char.name} for ${duration} turns.`); openProfileModal(charId); renderAll();
-                }
-            });
-            $('#profile-statuses').on('click', '.dm-remove-status-btn', function () {
-                const charId = $('#profile-modal').attr('data-char-id'); const char = players.find(p => p.id === charId) || enemies.find(e => e.id === charId);
-                const statusIndex = $(this).data('status-index');
-                if (char && char.statuses[statusIndex] !== undefined) { const removedStatus = char.statuses.splice(statusIndex, 1); logAction(`DM removed ${removedStatus[0].name} from ${char.name}.`); openProfileModal(charId); renderAll(); }
-            });
-            $('#profile-inventory').on('click', '.dm-transfer-item-btn', function () {
-                transferPayload.sourceId = $('#profile-modal').attr('data-char-id'); transferPayload.itemName = $(this).data('item-name');
-                $('#transfer-item-title').text(`Transfer ${transferPayload.itemName} to...`);
-                const allTargets = [...players, ...enemies].filter(c => c.id !== transferPayload.sourceId);
-                const targetsHtml = allTargets.map(target => `<button class="confirm-transfer-btn w-full px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500" data-target-id="${target.id}">${target.name}</button>`).join('');
-                $('#transfer-target-list').html(targetsHtml); openModal('transfer-item');
-            });
-            $('#transfer-target-list').on('click', '.confirm-transfer-btn', function () {
-                const targetId = $(this).data('target-id'); const source = players.find(p => p.id === transferPayload.sourceId) || enemies.find(e => e.id === transferPayload.sourceId);
-                const target = players.find(p => p.id === targetId) || enemies.find(e => e.id === targetId);
-                if (source && target && transferPayload.itemName) {
-                    const itemIndex = source.inventory.indexOf(transferPayload.itemName);
-                    if (itemIndex > -1) {
-                        source.inventory.splice(itemIndex, 1);
-                        if (!target.inventory) target.inventory = [];
-                        target.inventory.push(transferPayload.itemName);
-                        logAction(`DM transferred ${transferPayload.itemName} from ${source.name} to ${target.name}.`);
-                        closeModal('transfer-item'); openProfileModal(source.id);
-                    }
-                }
-            });
-
-            // --- Init & Character Selection ---
-            function setupCharacterSelection() {
-                const takenRoles = JSON.parse(localStorage.getItem('pokeQuestTakenRoles')) || [];
-
-                const playersHtml = initialPlayers.map(p => {
-                    const isTaken = takenRoles.includes(p.id);
-                    return `
-                                <button class="character-select-btn text-center p-2 rounded-lg ${isTaken ? 'bg-gray-700 cursor-not-allowed opacity-50' : 'bg-gray-800 hover:bg-gray-600'}" data-id="${p.id}" ${isTaken ? 'disabled' : ''}>
-                                    <div class="portrait mx-auto !w-24 !h-24">${getPokemonIcon(p.name)}</div>
-                                    <p class="mt-2 text-sm">${p.name}</p>
-                                    ${isTaken ? '<p class="text-red-500 text-xs mt-1">Taken</p>' : ''}
-                                </button>
-                            `;
-                }).join('');
-                $('#character-list').html(playersHtml);
-
-                const isDMTaken = takenRoles.includes('dm');
-                if (isDMTaken) {
-                    $('#select-dm-btn').prop('disabled', true).addClass('bg-gray-700 cursor-not-allowed opacity-50').append('<p class="text-red-500 text-xs mt-1">Taken</p>');
-                }
-
-                $('#game-board').addClass('hidden');
-                $('#character-selection-screen').removeClass('hidden');
-            }
-
-            function startGame(selectedId) {
-                let takenRoles = JSON.parse(localStorage.getItem('pokeQuestTakenRoles')) || [];
-                if (!takenRoles.includes(selectedId)) {
-                    takenRoles.push(selectedId);
-                    localStorage.setItem('pokeQuestTakenRoles', JSON.stringify(takenRoles));
-                }
-
-                $('#character-selection-screen').addClass('hidden');
-                $('#game-board').removeClass('hidden');
-
-                if (selectedId === 'dm') {
-                    isDM = true;
-                    currentPlayerId = null;
-                    ELS.body.addClass('dm-mode');
-                    ELS.playerIdentity.text('You are: The DM');
-                } else {
+            $(document)
+                .on('click', '.character-select-btn', function () {
+                    currentPlayerId = Number($(this).data('player-id'));
                     isDM = false;
-                    currentPlayerId = selectedId;
-                    ELS.body.removeClass('dm-mode');
-                    const playerName = initialPlayers.find(p => p.id === currentPlayerId)?.name || 'Player';
-                    ELS.playerIdentity.text(`You are: ${playerName}`);
+                    ELS.playerIdentity.text(`You are: ${cache.Players.find(p => Number(p.Id) === currentPlayerId)?.Name || 'Player'}`);
+                    ELS.characterSelection.addClass('hidden');
+                    ELS.gameBoard.removeClass('hidden');
+                    renderAll();
+                })
+                .on('click', '#select-dm-btn', function () {
+                    isDM = true; currentPlayerId = null;
+                    ELS.playerIdentity.text('You are: DM');
+                    ELS.characterSelection.addClass('hidden');
+                    ELS.gameBoard.removeClass('hidden');
+                    ELS.body.addClass('dm-mode'); // Added this to enable DM-specific UI
+                    renderAll();
+                })
+                .on('click', '.portrait', function () {
+                    const id = $(this).data('id');
+                    const c = players.find(p => p.id === id) || enemies.find(e => e.id === id);
+                    if (c) openProfileModalDb(c);
+                });
+
+            // ==== Modals & actions ===================================================================
+            function openProfileModalDb(char) {
+                activeProfileChar = char;
+                const isEnemy = enemies.some(e => e.id === char.id);
+                const isOwner = char.playerId === currentPlayerId;
+                const canEdit = isDM || isOwner;
+                // Determine header and level display
+                let headerText;
+                if (!isDM && isEnemy) {
+                    // hide level for players viewing enemies
+                    headerText = `${char.name}`;
+                } else {
+                    headerText = `${char.name} — Lvl ${char.level}`;
                 }
+                ELS.profileName.text(headerText);
+                ELS.profilePortrait.html(`<img class="w-24 h-24" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${char.pokemonId}.png"/>`);
+                // Types: show types always. For enemies, still show types to players
+                ELS.profileTypes.html((char.types || []).map(typePill).join(''));
+                // Statuses: for enemies, hide to players unless DM
+                if (!isDM && isEnemy) {
+                    ELS.profileStatuses.html(`<span class="text-xs bg-gray-700 px-2 py-0.5 rounded">???</span>`);
+                } else {
+                    const statusHtml = (char.statuses || []).map(s => {
+                        const removeBtn = isDM ? `<button class="remove-status-btn text-red-500 ml-1" data-status-name="${s.name}" data-target-pid="${char.playerId}" title="Remove status"><i class="fa-solid fa-xmark"></i></button>` : '';
+                        const durPart = s.duration ? (' (' + s.duration + ')') : '';
+                        return `<span class="flex items-center text-xs bg-gray-700 px-2 py-0.5 rounded">${s.name}${durPart}${removeBtn}</span>`;
+                    }).join('');
+                    ELS.profileStatuses.html(statusHtml || '<span class="text-xs text-gray-400">None</span>');
+                }
+                // Stats rendering with icons and editable inputs when permitted
+                const statsMeta = [
+                    { key: 'hp', label: 'HP', icon: 'fa-heart' },
+                    { key: 'atk', label: 'ATK', icon: 'fa-hand-fist' },
+                    { key: 'def', label: 'DEF', icon: 'fa-shield-halved' },
+                    { key: 'spAtk', label: 'SpA', icon: 'fa-bolt' },
+                    { key: 'spDef', label: 'SpD', icon: 'fa-shield' },
+                    { key: 'spd', label: 'SPD', icon: 'fa-person-running' },
+                    { key: 'acc', label: 'AC', icon: 'fa-bullseye' }
+                ];
+                let statsHtml = '';
+                statsMeta.forEach(({ key, label, icon }) => {
+                    let value = (key === 'hp') ? char.hp : (char[key]?.val ?? char[key] ?? 0);
+                    // For players viewing enemies, hide stats; DM sees all
+                    if (!isDM && isEnemy) {
+                        statsHtml += `<div class="stat-box flex items-center justify-center"><i class="fa-solid ${icon} mr-1"></i>???</div>`;
+                    } else {
+                        if (canEdit) {
+                            statsHtml += `<div class="stat-box flex items-center justify-center"><i class="fa-solid ${icon} mr-1"></i><input type="number" class="stat-input bg-transparent text-center w-full" data-key="${key}" value="${value}" /></div>`;
+                        } else {
+                            statsHtml += `<div class="stat-box flex items-center justify-center"><i class="fa-solid ${icon} mr-1"></i>${value}</div>`;
+                        }
+                    }
+                });
+                ELS.profileStats.html(`<div class="grid grid-cols-3 gap-2">${statsHtml}</div>`);
+                // Inventory: show unknown for enemy to players
+                if (!isDM && isEnemy) {
+                    ELS.profileInventory.html(`<div class="text-xs text-center text-gray-400">Items Unknown</div>`);
+                } else {
+                    const invHtml = (char.inventory || []).map(it => {
+                        // Determine if Team Pouch; restrict share/remove by players if not DM
+                        const isTeamPouch = /pouch/i.test(it);
+                        // Build action buttons with icons
+                        let actions = '';
+                        if (canEdit && (!isTeamPouch || isDM)) {
+                            actions += `<button class="use-item-btn px-1 py-1 bg-blue-600 rounded-md text-xs" data-item="${it}" data-target-id="${char.id}" title="Use"><i class="fa-solid fa-hand-sparkles"></i></button>`;
+                            actions += `<button class="share-item-btn px-1 py-1 bg-green-600 rounded-md text-xs" data-item="${it}" data-source-id="${char.playerId}" title="Share"><i class="fa-solid fa-share-nodes"></i></button>`;
+                        }
+                        // DM remove item icon
+                        if (isDM) {
+                            actions += `<button class="dm-remove-item-btn px-1 py-1 bg-red-600 rounded-md text-xs" data-item-name="${it}" data-target-pid="${char.playerId}" title="Remove"><i class="fa-solid fa-trash"></i></button>`;
+                        }
+                        // Item icon image
+                        const iconName = it.toLowerCase().replace(/ /g, '-');
+                        const imgUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${iconName}.png`;
+                        return `<div class="flex justify-between items-center bg-gray-700 rounded p-2 text-sm">
+                                  <span class="flex items-center"><img src="${imgUrl}" alt="${it}" class="item-icon mr-2"/>${it}</span>
+                                  <div class="flex space-x-1">${actions}</div>
+                                </div>`;
+                    }).join('') || `<div class="text-xs text-center text-gray-400">Empty</div>`;
+                    ELS.profileInventory.html(invHtml);
+                }
+                // Show/hide DM controls
+                if (isDM) { $('#dm-profile-edit').show(); } else { $('#dm-profile-edit').hide(); }
+                // Fill picklists for DM
+                fillDmPicklists();
+                $('#profile-modal').addClass('flex');
+            }
 
-                players = [...initialPlayers];
-                enemies = [...initialEnemies];
+            function closeModal(id) { $(`#${id}-modal`).removeClass('flex'); }
 
-                logAction("Welcome to PokéQuest! The game has started.");
+            async function fillDmPicklists() {
+                // Items
+                const itemsOpts = cache.Items.map(i => `<option value="${i.Id}">${i.Name}</option>`).join('');
+                ELS.dmAddItemSelect.html(itemsOpts);
+                // Statuses
+                const statusOpts = cache.Statuses.map(s => `<option value="${s.Id}" data-turns="${s.Turns ?? ''}">${s.Name}</option>`).join('');
+                ELS.dmAddStatusSelect.html(statusOpts);
+                // Pouch items
+                ELS.dmAddPouchItemSelect.html(itemsOpts);
+            }
+
+            // Delegated controls
+            $(document)
+                .on('click', '#profile-modal .close-button', () => closeModal('profile'))
+                .on('click', '#moves-modal .close-button', () => closeModal('moves'))
+                .on('click', '#inventory-modal .close-button', () => closeModal('inventory'))
+                .on('click', '#share-item-modal .close-button', () => closeModal('share-item'))
+                .on('click', '#add-enemy-modal .close-button', () => closeModal('add-enemy'))
+                .on('click', '#team-pouch-modal .close-button', () => closeModal('team-pouch'))
+                .on('click', '#transfer-from-pouch-modal .close-button', () => closeModal('transfer-from-pouch'));
+
+            // Add Player modal controls
+            $(document)
+                .on('click', '#add-player-modal .close-button', () => closeModal('add-player'))
+                .on('click', '#submit-new-player', async function () {
+                    // Gather inputs
+                    const name = $('#new-player-name-input').val().trim();
+                    const speciesId = Number($('#new-player-pokemon-select').val());
+                    const level = Number($('#new-player-level-input').val()) || 1;
+                    const hp = Number($('#new-player-hp-input').val()) || 0;
+                    if (!name || !speciesId) return;
+                    // Create new player row
+                    try {
+                        showPending();
+                        const playerRes = await DB.Player.create({ Name: name, Type: 'Player' });
+                        // Determine new player Id
+                        const newPlayerId = playerRes?.Id || playerRes?.id || (playerRes?.data && playerRes.data.Id) || null;
+                        // Fallback: reload to find last inserted row if Id missing
+                        let pid = newPlayerId;
+                        if (!pid) {
+                            await reloadAll();
+                            const found = cache.Players.find(p => p.Name === name);
+                            pid = found ? Number(found.Id) : null;
+                        }
+                        if (pid) {
+                            await DB.PlayerPokemon.create({ PlayerId: pid, PokemonId: speciesId, Level: level, Hp: hp, Name: '' });
+                            await logRemote(`DM added player ${name} with Pokemon #${speciesId} (Lv ${level}).`);
+                        }
+                        closeModal('add-player');
+                    } catch (err) {
+                        console.error('Add player failed', err);
+                    } finally {
+                        await reloadAll();
+                        hidePending();
+                    }
+                });
+
+            // Show Add Player modal
+            $('#add-player-button').on('click', function () {
+                // Populate species list
+                const speciesOpts = cache.Pokemon.filter(r => r && r.Name).map(r => `<option value="${r.Id}">${r.Name}</option>`).join('');
+                $('#new-player-pokemon-select').html(speciesOpts);
+                // Reset fields
+                $('#new-player-name-input').val('');
+                $('#new-player-level-input').val(1);
+                $('#new-player-hp-input').val(10);
+                $('#add-player-modal').addClass('flex');
+            });
+
+            // Use/share from profile
+            $(document)
+                .on('click', '.use-item-btn', function () {
+                    const itemName = $(this).data('item');
+                    const targetId = $(this).data('target-id') || activeProfileChar?.id;
+                    if (!itemName || !targetId) return;
+                    openUseItemModal(itemName, targetId);
+                })
+                .on('click', '.share-item-btn', function () {
+                    const itemName = $(this).data('item');
+                    const sourcePid = Number($(this).data('source-id')) || activeProfileChar?.playerId;
+                    openShareModal(itemName, sourcePid);
+                });
+
+            function openUseItemModal(itemName, preTargetId) {
+                $('#share-item-title').text(`Use "${itemName}" on...`);
+                const all = [...players, ...enemies];
+                const listHtml = all.map(t => `<button class="confirm-use-item-btn w-full px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500" data-item="${itemName}" data-target-id="${t.id}">${t.name}</button>`).join('');
+                ELS.sharePlayerList.html(listHtml);
+                $('#share-item-modal').addClass('flex');
+            }
+
+            function openShareModal(itemName, sourcePlayerId) {
+                $('#share-item-title').text(`Share "${itemName}" with...`);
+                const listHtml = players.filter(p => p.playerId !== sourcePlayerId).map(p => `<button class="confirm-share-btn w-full px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500" data-item="${itemName}" data-recipient-id="${p.playerId}" data-source-id="${sourcePlayerId}">${p.name}</button>`).join('');
+                ELS.sharePlayerList.html(listHtml);
+                $('#share-item-modal').addClass('flex');
+            }
+
+            // Apply item effects & persist inventory changes
+            async function removeOnePlayerItem(playerId, itemName) {
+                const itemsByName = byId(cache.Items, 'Name');
+                const itemId = itemsByName[itemName]?.Id;
+                if (!itemId) return false;
+
+                const row = cache.PlayerItems.find(pi => Number(pi.PlayerId) === Number(playerId) && Number(pi.ItemId) === Number(itemId));
+                const rid = rowIdOf(row);
+                if (!rid) return false;
+                await DB.PlayerItems.remove(rid);
+                return true;
+            }
+
+            async function addOnePlayerItem(playerId, itemId) { await DB.PlayerItems.create({ PlayerId: Number(playerId), ItemId: Number(itemId) }); }
+
+            function charByCompositeId(cid) { return players.find(p => p.id === cid) || enemies.find(e => e.id === cid); }
+
+            async function applyItemEffect(itemName, target) {
+                // Basic demo: Oran Berry heals 20, Reviver Seed sets HP to 1 (if 0)
+                if (!target) return;
+                if (/oran/i.test(itemName)) {
+                    const healed = 20; target.hp = (target.hp || 0) + healed; await persistHp(target);
+                    await logRemote(`${target.name} recovered ${healed} HP with ${itemName}.`);
+                } else if (/revive/i.test(itemName)) {
+                    if (target.hp <= 0) { target.hp = 1; await persistHp(target); await logRemote(`${target.name} was revived by ${itemName}.`); }
+                }
+            }
+
+            async function persistHp(char) {
+                const row = cache.PlayerPokemon.find(r => Number(r.PlayerId) === Number(char.playerId) && Number(r.PokemonId) === Number(char.pokemonId));
+                const rid = rowIdOf(row);
+                if (rid) { await DB.PlayerPokemon.update(rid, { Hp: Number(char.hp) }); }
+            }
+
+            // Open moves modal for current turn character
+            function openMovesModalForTurn() {
+                // Determine which character's moves to show
+                const cur = turnOrder[currentTurnIndex];
+                let char;
+                if (!cur) return;
+                if (cur.isDM) return; // DM turn: no moves
+                if (players.some(p => p.id === cur.id)) {
+                    char = players.find(p => p.id === cur.id);
+                } else {
+                    char = enemies.find(e => e.id === cur.id);
+                }
+                if (!char) return;
+                // Build moves list
+                const moves = char.abilities || [];
+                // Show special move if defined (placeholder, treat first as special)
+                let specialHtml = '';
+                if (moves.length) {
+                    const m = moves[0];
+                    specialHtml = `<div class="move-card"><div class="flex items-center justify-between"><span class="move-title">${m.name}</span><span class="move-meta uppercase">${m.category || ''}</span></div><div class="move-meta">${m.description || ''}</div></div>`;
+                }
+                ELS.specialMove.html(specialHtml);
+                const listHtml = moves.map(m => `<li class="move-card"><div class="flex items-center justify-between"><span class="move-title">${m.name}</span><span class="move-meta uppercase">${m.category || ''}</span></div><div class="move-meta">${m.description || ''}</div></li>`).join('');
+                ELS.movesList.html(listHtml);
+                $('#moves-modal').addClass('flex');
+            }
+
+            // Open inventory modal for current turn character
+            function openInventoryModalForTurn() {
+                const cur = turnOrder[currentTurnIndex];
+                let char;
+                if (!cur) return;
+                if (cur.isDM) return;
+                if (players.some(p => p.id === cur.id)) {
+                    char = players.find(p => p.id === cur.id);
+                } else {
+                    char = enemies.find(e => e.id === cur.id);
+                }
+                if (!char) return;
+                // List items with icons and use/share buttons
+                if (!char.inventory || !char.inventory.length) {
+                    ELS.inventoryList.html('<li class="text-center text-xs text-gray-400 p-2 rounded bg-gray-700">Empty</li>');
+                } else {
+                    const html = char.inventory.map(it => {
+                        const iconName = it.toLowerCase().replace(/ /g, '-');
+                        const imgUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${iconName}.png`;
+                        let actions = '';
+                        // Only allow using/sharing own inventory if player is owner or DM
+                        const isOwner = (char.playerId === currentPlayerId);
+                        const isTeamPouch = /pouch/i.test(it);
+                        if ((isOwner || isDM) && (!isTeamPouch || isDM)) {
+                            actions += `<button class="use-item-btn px-1 py-1 bg-blue-600 rounded-md text-xs mr-1" data-item="${it}" data-target-id="${char.id}" title="Use"><i class="fa-solid fa-hand-sparkles"></i></button>`;
+                            actions += `<button class="share-item-btn px-1 py-1 bg-green-600 rounded-md text-xs" data-item="${it}" data-source-id="${char.playerId}" title="Share"><i class="fa-solid fa-share-nodes"></i></button>`;
+                        }
+                        return `<li class="flex justify-between items-center p-2 rounded bg-gray-700 text-sm mb-1"><span class="flex items-center"><img src="${imgUrl}" alt="${it}" class="item-icon mr-2"/>${it}</span><div class="flex space-x-1">${actions}</div></li>`;
+                    }).join('');
+                    ELS.inventoryList.html(html);
+                }
+                $('#inventory-modal').addClass('flex');
+            }
+
+            // Confirm use
+            $(document).on('click', '.confirm-use-item-btn', async function () {
+                const itemName = $(this).data('item');
+                const targetId = $(this).data('target-id');
+                const target = charByCompositeId(targetId);
+                if (!target) return;
+                // Remove one from the acting owner's bag (DM uses the active creature's owner if in turn)
+                const owner = activeProfileChar || players.find(p => p.playerId === currentPlayerId) || target;
+                await removeOnePlayerItem(owner.playerId, itemName);
+                await applyItemEffect(itemName, target);
+                closeModal('share-item');
+                await reloadAll();
+            });
+
+            // Confirm share
+            $(document).on('click', '.confirm-share-btn', async function () {
+                const itemName = $(this).data('item');
+                const sourceId = Number($(this).data('source-id'));
+                const recipientId = Number($(this).data('recipient-id'));
+                const itemsByName = byId(cache.Items, 'Name');
+                const itemId = itemsByName[itemName]?.Id;
+                if (!itemId) return;
+                const removed = await removeOnePlayerItem(sourceId, itemName);
+                if (removed) { await addOnePlayerItem(recipientId, itemId); await logRemote(`Shared ${itemName} from P${sourceId} to P${recipientId}.`); }
+                closeModal('share-item');
+                await reloadAll();
+            });
+
+            // Team Pouch =================================================================================
+            function openTeamPouch() {
+                const dm = cache.Players.find(p => String(p.Type).toLowerCase() === 'dm');
+                const dmId = Number(dm?.Id || 1);
+                // Items
+                const itemsById = byId(cache.Items);
+                const list = cache.PlayerItems.filter(pi => Number(pi.PlayerId) === dmId).map(pi => itemsById[Number(pi.ItemId)]?.Name).filter(Boolean);
+                teamPouch.items = list;
+                // Coins (parse most recent COINS entry)
+                const coinLog = [...(cache.Log || [])].reverse().find(r => typeof r.Description === 'string' && r.Description.startsWith('POUCH_COINS='));
+                teamPouch.coins = coinLog ? Number(String(coinLog.Description).split('=')[1] || 0) : 0;
+                // Render
+                ELS.pouchCoinsDisplay.text(teamPouch.coins);
+                ELS.pouchCoinsInput.val(teamPouch.coins);
+                // Determine if current viewer has the Team Pouch item (or is DM)
+                let canGive = isDM;
+                if (!isDM && currentPlayerId) {
+                    const pChar = players.find(p => p.playerId === currentPlayerId);
+                    canGive = pChar && (pChar.inventory || []).some(it => /pouch/i.test(it));
+                }
+                ELS.pouchInventoryList.html(list.map(n => {
+                    const button = canGive ? `<button class="transfer-from-pouch px-2 py-1 bg-green-600 rounded text-xs" data-item-name="${n}">Give</button>` : '';
+                    // Icon for item
+                    const iconName = n.toLowerCase().replace(/ /g, '-');
+                    const imgUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${iconName}.png`;
+                    return `<li class="p-2 rounded bg-gray-700 flex justify-between items-center"><span class="flex items-center"><img src="${imgUrl}" alt="${n}" class="item-icon mr-2"/>${n}</span>${button}</li>`;
+                }).join('') || `<li class="text-center text-xs text-gray-400 p-2 rounded bg-gray-700">Empty</li>`);
+                $('#team-pouch-modal').addClass('flex');
+            }
+
+            ELS.teamPouchBtn.on('click', openTeamPouch);
+            ELS.pouchCoinsInput.on('change blur', async function () {
+                const v = Number($(this).val());
+                teamPouch.coins = isFinite(v) ? v : 0;
+                ELS.pouchCoinsDisplay.text(teamPouch.coins);
+                await DB.Log.create({ Description: `POUCH_COINS=${teamPouch.coins}`, Timestamp: new Date().toISOString() });
+            });
+
+            $(document).on('click', '.transfer-from-pouch', function () {
+                const itemName = $(this).data('item-name');
+                $('#transfer-from-pouch-title').text(`Transfer ${itemName} to...`);
+                const list = players.map(p => `<button class="confirm-transfer-from-pouch w-full px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500" data-item="${itemName}" data-target="${p.playerId}">${p.name}</button>`).join('');
+                ELS.transferFromPouchPlayerList.html(list);
+                $('#transfer-from-pouch-modal').addClass('flex');
+            });
+
+            $(document).on('click', '.confirm-transfer-from-pouch', async function () {
+                const itemName = $(this).data('item');
+                const targetPid = Number($(this).data('target'));
+                const dm = cache.Players.find(p => String(p.Type).toLowerCase() === 'dm');
+                const dmId = Number(dm?.Id || 1);
+                // remove from DM bag
+                await removeOnePlayerItem(dmId, itemName);
+                // add to target
+                const itemsByName = byId(cache.Items, 'Name');
+                const itemId = itemsByName[itemName]?.Id;
+                if (itemId) { await addOnePlayerItem(targetPid, itemId); await logRemote(`Team Pouch -> Player ${targetPid}: ${itemName}`); }
+                closeModal('transfer-from-pouch');
+                await reloadAll();
+                openTeamPouch(); // re-open to refresh
+            });
+
+            // Handle stat editing: players can edit their own stats and DM can edit all
+            $(document).on('change blur', '.stat-input', async function () {
+                const key = $(this).data('key');
+                const value = Number($(this).val());
+                if (!activeProfileChar || !key) return;
+                if (!isDM && activeProfileChar.playerId !== currentPlayerId) return; // prevent editing others
+                if (key === 'hp') {
+                    activeProfileChar.hp = isFinite(value) ? value : activeProfileChar.hp;
+                    await persistHp(activeProfileChar);
+                } else {
+                    if (activeProfileChar[key] && typeof activeProfileChar[key] === 'object') {
+                        activeProfileChar[key].val = isFinite(value) ? value : activeProfileChar[key].val;
+                    } else {
+                        activeProfileChar[key] = isFinite(value) ? value : activeProfileChar[key];
+                    }
+                }
+                logLocal(`${activeProfileChar.name} updated ${key.toUpperCase()} to ${value}`);
+            });
+
+            ELS.dmAddPouchItemBtn.on('click', async function () {
+                const dm = cache.Players.find(p => String(p.Type).toLowerCase() === 'dm');
+                const dmId = Number(dm?.Id || 1);
+                const itemId = Number(ELS.dmAddPouchItemSelect.val());
+                if (!itemId) return;
+                await addOnePlayerItem(dmId, itemId);
+                await logRemote(`DM added ${cache.Items.find(i => Number(i.Id) === itemId)?.Name || 'Item'} to Team Pouch.`);
+                await reloadAll();
+                openTeamPouch();
+            });
+
+            // Enemy CRUD (DM roster stored in PlayerPokemon under DM player) ===========================
+            $('#add-enemy-button').on('click', function () {
+                // Fill species list from Pokemon table
+                const opts = cache.Pokemon.filter(r => r && r.Name).map(r => `<option value="${r.Id}">${r.Name}</option>`).join('');
+                ELS.pokemonSelect.html(opts);
+                ELS.enemyNameInput.val('');
+                $('#add-enemy-modal').addClass('flex');
+            });
+
+            $('#submit-new-enemy').on('click', async function () {
+                const pokemonId = Number(ELS.pokemonSelect.val());
+                const name = ELS.enemyNameInput.val().trim();
+                const level = Number(ELS.enemyLevelInput.val()) || 1;
+                const hp = Number(ELS.enemyHpInput.val()) || 0;
+                const dm = cache.Players.find(p => String(p.Type).toLowerCase() === 'dm');
+                const dmId = Number(dm?.Id || 1);
+                await DB.PlayerPokemon.create({ PlayerId: dmId, PokemonId: pokemonId, Level: level, Hp: hp, Name: name });
+                await logRemote(`DM added enemy ${name || cache.Pokemon.find(p => Number(p.Id) === pokemonId)?.Name || ('#' + pokemonId)} (Lv ${level}).`);
+                closeModal('add-enemy');
+                await reloadAll();
+            });
+
+            $(document).on('click', '.remove-enemy-btn', async function () {
+                const rowId = Number($(this).data('row'));
+                if (!rowId) return;
+                await DB.PlayerPokemon.remove(rowId);
+                await logRemote('DM removed an enemy.');
+                await reloadAll();
+            });
+
+            // DM: add item/status to active profile ====================================================
+            ELS.dmAddItemBtn.on('click', async function () {
+                if (!activeProfileChar) return;
+                const itemId = Number(ELS.dmAddItemSelect.val());
+                if (!itemId) return;
+                showPending();
+                await addOnePlayerItem(activeProfileChar.playerId, itemId);
+                await logRemote(`DM gave ${cache.Items.find(i => Number(i.Id) === itemId)?.Name} to ${activeProfileChar.name}.`);
+                await reloadAll();
+                hidePending();
+                openProfileModalDb(players.find(p => p.id === activeProfileChar.id) || enemies.find(e => e.id === activeProfileChar.id));
+            });
+
+            ELS.dmAddStatusBtn.on('click', async function () {
+                if (!activeProfileChar) return;
+                const statusId = Number(ELS.dmAddStatusSelect.val());
+                if (!statusId) return;
+                showPending();
+                await DB.PlayerStatuses.create({ PlayerId: activeProfileChar.playerId, StatusId: statusId });
+                await logRemote(`DM applied ${cache.Statuses.find(s => Number(s.Id) === statusId)?.Name} to ${activeProfileChar.name}.`);
+                await reloadAll();
+                hidePending();
+                openProfileModalDb(players.find(p => p.id === activeProfileChar.id) || enemies.find(e => e.id === activeProfileChar.id));
+            });
+
+            // Dice =====================================================================================
+            $('#dice-buttons').on('click', 'button', async function () {
+                const sides = Number($(this).data('sides')) || 6;
+                const result = Math.floor(Math.random() * sides) + 1;
+                ELS.diceDisplay.text(result).removeClass('dice-animate'); void ELS.diceDisplay[0]?.offsetWidth; ELS.diceDisplay.addClass('dice-animate');
+                await logRemote(`${isDM ? 'DM' : ('P' + (currentPlayerId || '?'))} rolled d${sides}: ${result}`);
+            });
+
+            // Turn controls ===========================================================================
+            $(document)
+                .on('click', '#dm-force-turn-btn', function () { const dmIdx = turnOrder.findIndex(c => c.id === 'dm'); if (dmIdx > -1) { currentTurnIndex = dmIdx; logLocal('DM forced their turn.'); renderAll(); } })
+                .on('click', '#dm-reset-turns-btn', function () { currentTurnIndex = 0; players.forEach(p => p.turnTaken = false); enemies.forEach(e => e.turnTaken = false); logLocal('DM reset all character turns.'); renderAll(); })
+                .on('click', '#dm-end-turn-btn', function () { logLocal('DM ended their turn.'); currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length; players.forEach(p => p.turnTaken = false); enemies.forEach(e => e.turnTaken = false); renderAll(); })
+                .on('click', '#end-turn-button', function () { const prev = turnOrder[currentTurnIndex]; if (prev) { prev.turnTaken = true; logLocal(`${prev.name} ended their turn.`); } currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length; renderAll(); });
+
+            // Open moves/inventory from action board buttons
+            $(document)
+                .on('click', '#moves-button', function () { openMovesModalForTurn(); })
+                .on('click', '#inventory-button', function () { openInventoryModalForTurn(); });
+
+            // Remove item (DM)
+            $(document).on('click', '.dm-remove-item-btn', async function () {
+                const itemName = $(this).data('item-name');
+                const targetPid = Number($(this).data('target-pid'));
+                if (!itemName || !targetPid) return;
+                showPending();
+                await removeOnePlayerItem(targetPid, itemName);
+                await logRemote(`DM removed ${itemName} from Player ${targetPid}.`);
+                await reloadAll();
+                hidePending();
+                // Refresh profile if still open
+                if (activeProfileChar) {
+                    const refreshed = players.find(p => p.id === activeProfileChar.id) || enemies.find(e => e.id === activeProfileChar.id);
+                    if (refreshed) openProfileModalDb(refreshed);
+                }
+            });
+
+            // Remove status (DM)
+            $(document).on('click', '.remove-status-btn', async function () {
+                const statusName = $(this).data('status-name');
+                const targetPid = Number($(this).data('target-pid'));
+                if (!statusName || !targetPid) return;
+                showPending();
+                // Identify status ID
+                const status = cache.Statuses.find(s => s.Name === statusName);
+                const statusId = status ? Number(status.Id) : null;
+                if (statusId) {
+                    const row = cache.PlayerStatuses.find(ps => Number(ps.PlayerId) === targetPid && Number(ps.StatusId) === statusId);
+                    const rid = rowIdOf(row);
+                    if (rid) {
+                        await DB.PlayerStatuses.remove(rid);
+                        await logRemote(`DM removed status ${statusName} from Player ${targetPid}.`);
+                    }
+                }
+                await reloadAll();
+                hidePending();
+                if (activeProfileChar) {
+                    const refreshed = players.find(p => p.id === activeProfileChar.id) || enemies.find(e => e.id === activeProfileChar.id);
+                    if (refreshed) openProfileModalDb(refreshed);
+                }
+            });
+
+            // Remove Player (DM)
+            $(document).on('click', '.remove-player-btn', async function () {
+                const pid = Number($(this).data('player-id'));
+                if (!pid || !isDM) return;
+                showPending();
+                // remove PlayerPokemon rows
+                const owned = cache.PlayerPokemon.filter(pp => Number(pp.PlayerId) === pid);
+                for (const pp of owned) {
+                    const rid = rowIdOf(pp);
+                    if (rid) await DB.PlayerPokemon.remove(rid);
+                }
+                // remove items, statuses, moves for this player
+                const pItems = cache.PlayerItems.filter(pi => Number(pi.PlayerId) === pid);
+                for (const pi of pItems) { const rid = rowIdOf(pi); if (rid) await DB.PlayerItems.remove(rid); }
+                const pStatuses = cache.PlayerStatuses.filter(ps => Number(ps.PlayerId) === pid);
+                for (const ps of pStatuses) { const rid = rowIdOf(ps); if (rid) await DB.PlayerStatuses.remove(rid); }
+                const pMoves = cache.PlayerMoves.filter(pm => Number(pm.PlayerId) === pid);
+                for (const pm of pMoves) { const rid = rowIdOf(pm); if (rid) await DB.PlayerMoves.remove(rid); }
+                // remove the player row
+                const playerRow = cache.Players.find(pr => Number(pr.Id) === pid);
+                const playerRid = rowIdOf(playerRow);
+                if (playerRid) await DB.Player.remove(playerRid);
+                await logRemote(`DM removed player ${pid}.`);
+                await reloadAll();
+                hidePending();
+            });
+
+            // ==== Load & map everything from Sheets ===================================================
+            async function loadAll() {
+                const ops = [
+                    { sheet: 'Player', method: 'GET', limit: 200 },
+                    { sheet: 'PlayerPokemon', method: 'GET', limit: 2000 },
+                    { sheet: 'Pokemon', method: 'GET', limit: 1200 },
+                    { sheet: 'Types', method: 'GET', limit: 50 },
+                    { sheet: 'PokemonTypes', method: 'GET', limit: 4000 },
+                    { sheet: 'Items', method: 'GET', limit: 500 },
+                    { sheet: 'PlayerItems', method: 'GET', limit: 4000 },
+                    { sheet: 'Statuses', method: 'GET', limit: 200 },
+                    { sheet: 'PlayerStatuses', method: 'GET', limit: 4000 },
+                    { sheet: 'Moves', method: 'GET', limit: 2000 },
+                    { sheet: 'PlayerMoves', method: 'GET', limit: 4000 },
+                    { sheet: 'Log', method: 'GET', limit: 200 }
+                ];
+                const res = await api.batch(ops);
+                const [Players, PlayerPokemon, Pokemon, Types, PokemonTypes, Items, PlayerItems, Statuses, PlayerStatuses, Moves, PlayerMoves, Log] = res.map(unwrap);
+                cache = { Players, PlayerPokemon, Pokemon, Types, PokemonTypes, Items, PlayerItems, Statuses, PlayerStatuses, Moves, PlayerMoves, Log };
+
+                // Maps by Id
+                const typesById = byId(Types);
+                const itemsById = byId(Items);
+                const statusesById = byId(Statuses);
+                const movesById = byId(Moves);
+                const pokemonById = byId(Pokemon);
+
+                // Build playable characters for each Player (Type=Player)
+                const dmRow = Players.find(p => String(p.Type).toLowerCase() === 'dm');
+                const dmId = Number(dmRow?.Id || 1);
+                const playerRows = Players.filter(p => String(p.Type).toLowerCase() === 'player');
+
+                players = [];
+                playerRows.forEach(p => {
+                    // pick first pokemon for this player
+                    const pp = PlayerPokemon.find(pp => Number(pp.PlayerId) === Number(p.Id));
+                    if (!pp) return;
+                    const poke = pokemonById[Number(pp.PokemonId)];
+                    // Don't create a character if the base pokemon is missing
+                    if (!poke) return;
+                    const char = toCharacter(p, pp, poke, typesById, itemsById, statusesById, movesById);
+                    if (char) players.push(char);
+                });
+
+                // DM enemies = all PlayerPokemon where PlayerId==DM
+                enemies = PlayerPokemon
+                    .filter(pp => Number(pp.PlayerId) === dmId)
+                    .map(pp => {
+                        const poke = pokemonById[Number(pp.PokemonId)];
+                        if (!poke) return null; // skip rows that reference missing Pokémon
+                        const fakePlayer = { Id: dmId, Name: 'DM', Type: 'DM' };
+                        // Enemies might have custom names stored in the PlayerPokemon table
+                        const enemyCharacter = toCharacter(fakePlayer, pp, poke, typesById, itemsById, statusesById, movesById);
+                        if (enemyCharacter && pp.Name) {
+                            enemyCharacter.name = pp.Name;
+                        }
+                        return enemyCharacter;
+                    })
+                    .filter(Boolean); // remove any nulls
+            };
+
+            async function reloadAll() {
+                await loadAll();
                 renderAll();
             }
 
-            setupCharacterSelection();
+            // ==== Boot ==============================================================================
+            async function init() {
+                try {
+                    // Show large loading overlay
+                    $('#first-load-overlay').removeClass('hidden');
+                    await loadAll();
+                    renderCharacterSelect();
+                    ELS.characterSelection.removeClass('hidden');
+                    // Hide the first-load overlay once characters render
+                    $('#first-load-overlay').addClass('hidden');
+                    // Schedule passive refresh every 15 seconds
+                    setInterval(async () => {
+                        try {
+                            await reloadAll();
+                        } catch (err) {
+                            console.error('Auto-refresh failed', err);
+                        }
+                    }, 15000);
+                } catch (e) {
+                    console.error('Init failed', e);
+                    $('body').html('<div class="text-center p-8 text-red-400">Failed to load game data. Please check the console for errors and try again later.</div>');
+                }
+            };
+
+            // Start the application
+            init();
         });
     </script>
 </body>

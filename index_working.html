@@ -1,596 +1,213 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéQuest</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-
-        body {
-            font-family: 'Press Start 2P', cursive;
-            background-color: #1a202c;
-            color: #e2e8f0;
-            cursor: default;
-        }
-
-        .container-box {
-            background: rgba(17, 24, 39, 0.6);
-            border: 2px solid #4b5563;
-            border-radius: 1rem;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(8px);
-        }
-
-        .stat-box {
-            background: #2d3748;
-            border-radius: 0.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            border: 1px solid #4a5568;
-            padding: 0.5rem 1rem;
-            flex-shrink: 0;
-        }
-
-        .stat-positive {
-            color: #48bb78;
-        }
-
-        .stat-negative {
-            color: #e53e3e;
-        }
-
-        .portrait {
-            width: 4.5rem;
-            height: 4.5rem;
-            background-color: #374151;
-            border-radius: 50%;
-            border: 2px solid #e2e8f0;
-            box-shadow: inset 0 0 8px rgba(0,0,0,0.5);
-            margin: 0.5rem;
-            cursor: pointer;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: box-shadow 0.3s ease-in-out;
-        }
-
-        .negative-status-glow {
-            box-shadow: inset 0 0 8px rgba(0,0,0,0.5), 0 0 15px rgba(229, 62, 62, 0.7); /* red-500 glow */
-        }
-
-        .dice-display {
-            width: 8rem;
-            height: 8rem;
-            background-color: #4a5568;
-            border: 3px solid #e2e8f0;
-            border-radius: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3rem;
-            text-shadow: 2px 2px #000;
-        }
-
-        .log-box {
-            background-color: #1f2937;
-            border: 2px solid #374151;
-            border-radius: 0.75rem;
-            resize: none;
-            font-size: 0.75rem;
-            padding: 0.5rem;
-            font-family: 'Courier New', Courier, monospace;
-        }
-
-        .dm-mode-visible {
-            display: none;
-        }
-
-        body.dm-mode .dm-mode-visible {
-            display: flex;
-        }
-
-        .dm-turn-visible {
-            display: none;
-        }
-
-        body.dm-turn .dm-turn-visible {
-            display: flex;
-        }
-
-        body.dm-mode .dm-mode-visible-block {
-            display: block;
-        }
-
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-            .modal.flex {
-                display: flex;
-            }
-
-        .close-button {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            font-size: 1.5rem;
-            cursor: pointer;
-            z-index: 10;
-        }
-
-
-        .modal-content {
-            background-color: #1f2937;
-            padding: 2rem;
-            padding-top: 3.5rem;
-            padding-right: 2.5rem; /* Add extra right padding for scrollbar space */
-            border-radius: 1rem;
-            width: 90%;
-            max-width: 500px;
-            position: relative;
-            border: 2px solid #4b5563;
-            display: flex;
-            flex-direction: column;
-            max-height: 90vh;
-            box-sizing: border-box;
-        }
-
-        .modal-scroll {
-            flex: 1 1 auto;
-            overflow-y: auto;
-            min-height: 0;
-            margin-right: -2.5rem; /* Pull scrollbar into the padding area */
-            padding-right: 2.5rem; /* Prevent content from being under the scrollbar */
-            scrollbar-width: thin;
-            scrollbar-color: #374151 #23272f;
-            box-sizing: border-box;
-        }
-
-            .modal-scroll::-webkit-scrollbar {
-                width: 8px;
-            }
-
-            .modal-scroll::-webkit-scrollbar-thumb {
-                background: #374151;
-                border-radius: 6px;
-            }
-
-            .modal-scroll::-webkit-scrollbar-track {
-                background: #23272f;
-                border-radius: 6px;
-            }
-
-        .turn-bubble-container {
-            position: relative;
-            display: inline-block;
-        }
-
-        .turn-bubble {
-            width: 2.5rem;
-            height: 2.5rem;
-            border-radius: 50%;
-            border: 2px solid #e2e8f0;
-            background-color: #4a5568;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            margin: 0 0.25rem;
-            cursor: pointer;
-            transition: all 0.2s ease-in-out;
-        }
-
-            .turn-bubble.last {
-                background-color: #d69e2e;
-            }
-
-            .turn-bubble.current {
-                background-color: #48bb78;
-                transform: scale(1.2);
-                box-shadow: 0 0 15px #48bb78;
-            }
-
-            .turn-bubble.next {
-                background-color: #3182ce;
-            }
-
-        .turn-bubble-popover {
-            visibility: hidden;
-            width: 120px;
-            background-color: #111827;
-            color: #fff;
-            text-align: center;
-            border-radius: 6px;
-            padding: 5px 0;
-            position: absolute;
-            z-index: 1;
-            bottom: 125%;
-            left: 50%;
-            margin-left: -60px;
-            opacity: 0;
-            transition: opacity 0.3s;
-            font-size: 0.75rem;
-        }
-
-        .turn-bubble-container:hover .turn-bubble-popover {
-            visibility: visible;
-            opacity: 1;
-        }
-
-        .log-header {
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-            .log-header .toggle-icon {
-                font-size: 1.25rem;
-                margin-left: 0.5rem;
-            }
-
-        .dm-visible-inline {
-            display: none;
-        }
-
-        body.dm-mode .dm-visible-inline {
-            display: inline-flex;
-        }
-
-        .dm-stat-input {
-            width: 40px;
-            background-color: #4a5568;
-            color: #e2e8f0;
-            border: none;
-            text-align: center;
-            border-radius: 4px;
-        }
-
-            .dm-stat-input::-webkit-outer-spin-button, .dm-stat-input::-webkit-inner-spin-button {
-                -webkit-appearance: none;
-                margin: 0;
-            }
-
-            .dm-stat-input[type=number] {
-                -moz-appearance: textfield;
-            }
-
-        .icon {
-            margin-right: 0.5rem;
-        }
-
-        .type-icon {
-            display: inline-block;
-            width: 1.25rem;
-            height: 1.25rem;
-            margin: 0 0.2rem;
-            border-radius: 50%;
-            text-align: center;
-            line-height: 1.25rem;
-            color: white;
-            font-size: 0.75rem;
-        }
-
-        .type-normal {
-            background-color: #A8A77A;
-        }
-
-        .type-fire {
-            background-color: #EE8130;
-        }
-
-        .type-water {
-            background-color: #6390F0;
-        }
-
-        .type-electric {
-            background-color: #F7D02C;
-        }
-
-        .type-grass {
-            background-color: #7AC74C;
-        }
-
-        .type-ice {
-            background-color: #96D9D6;
-        }
-
-        .type-fighting {
-            background-color: #C22E28;
-        }
-
-        .type-poison {
-            background-color: #A33EA1;
-        }
-
-        .type-ground {
-            background-color: #E2BF65;
-        }
-
-        .type-flying {
-            background-color: #A98FF3;
-        }
-
-        .type-psychic {
-            background-color: #F95587;
-        }
-
-        .type-bug {
-            background-color: #A6B91A;
-        }
-
-        .type-rock {
-            background-color: #B6A136;
-        }
-
-        .type-ghost {
-            background-color: #735797;
-        }
-
-        .type-dragon {
-            background-color: #6F35FC;
-        }
-
-        .type-dark {
-            background-color: #705746;
-        }
-
-        .type-steel {
-            background-color: #B7B7CE;
-        }
-
-        .type-fairy {
-            background-color: #D685AD;
-        }
-
-        @keyframes dice-shake {
-            0% {
-                transform: rotate(0deg) scale(1);
-            }
-
-            20% {
-                transform: rotate(-10deg) scale(1.1);
-            }
-
-            40% {
-                transform: rotate(10deg) scale(1.1);
-            }
-
-            60% {
-                transform: rotate(-10deg) scale(1.1);
-            }
-
-            80% {
-                transform: rotate(10deg) scale(1.1);
-            }
-
-            100% {
-                transform: rotate(0deg) scale(1);
-            }
-        }
-
-        .dice-animate {
-            animation: dice-shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-        }
-    </style>
-</head>
-<body class="bg-gray-900 text-gray-200 flex flex-col items-center p-2 sm:p-4 min-h-screen">
-
-    <!-- Screens -->
-    <div id="lobby-page" class="w-full h-full flex flex-col items-center justify-center p-4">
-        <div class="container-box p-8 max-w-lg w-full text-center">
-            <h1 class="text-3xl mb-8">PokéQuest</h1>
-            <div class="flex flex-col space-y-4">
-                <div class="space-y-2">
-                    <p class="text-sm">Enter Your Name</p>
-                    <input type="text" id="username-input" class="w-full px-4 py-2 bg-gray-700 rounded-lg text-center" placeholder="Username">
-                </div>
-                <div class="space-y-2">
-                    <p class="text-sm">Enter Room Code</p>
-                    <input type="text" id="room-code-input" class="w-full px-4 py-2 bg-gray-700 rounded-lg text-center" placeholder="Room Code">
-                    <button id="join-room-button" class="w-full px-4 py-2 bg-blue-600 rounded-lg shadow-md hover:bg-blue-700">Join Room</button>
-                </div>
-                <p id="lobby-warning" class="text-red-500 text-xs h-4"></p>
-                <div class="space-y-2">
-                    <p class="text-sm mt-4">OR</p>
-                    <button id="create-room-button" class="w-full px-4 py-2 bg-green-600 rounded-lg shadow-md hover:bg-green-700">Create Room (DM)</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="dm-waiting-room" class="hidden w-full h-full flex-col items-center justify-center p-4">
-        <div class="container-box p-8 max-w-2xl w-full text-center">
-            <h1 class="text-3xl mb-4">DM Waiting Room</h1>
-            <p class="mb-2 text-lg">Share this code with your players:</p>
-            <p id="room-code-display" class="text-4xl mb-6 bg-gray-800 p-4 rounded-lg tracking-widest"></p>
-            <h2 class="text-2xl mb-4">Players Joined</h2>
-            <div id="waiting-player-list" class="min-h-[100px] bg-gray-800 rounded-lg p-4 mb-6 space-y-2"></div>
-            <div class="flex flex-col md:flex-row justify-center space-y-4 md:space-y-0 md:space-x-4">
-                <button id="upload-save-button" class="w-full md:w-auto px-6 py-3 bg-yellow-600 rounded-lg shadow-md hover:bg-yellow-700"><i class="fas fa-upload icon"></i>Upload Save</button>
-                <input type="file" id="save-file-input" class="hidden" accept=".json">
-                <button id="start-game-button" class="w-full md:w-auto px-6 py-3 bg-green-600 rounded-lg shadow-md hover:bg-green-700"><i class="fas fa-play icon"></i>Start Game</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="game-board" class="hidden container-box w-full max-w-7xl p-4 md:p-8 flex-col space-y-8">
-        <div class="flex flex-col sm:flex-row justify-between items-center w-full mb-4 gap-4">
-            <div class="flex items-center space-x-4">
-                <button id="music-options-toggle" class="px-3 py-2 bg-gray-700 rounded-full hover:bg-gray-800 flex items-center justify-center">
-                    <i class="fas fa-cog"></i>
-                </button>
-                <p id="player-identity" class="text-lg text-center sm:text-left">You are: </p>
-            </div>
-            <div class="flex items-center space-x-4">
-                <button id="viewToggle" class="px-4 py-2 bg-purple-600 rounded-lg shadow-md hover:bg-purple-700">Switch View</button>
-                <div class="dm-mode-visible items-center space-x-2">
-                    <button id="save-button" class="px-4 py-2 bg-blue-600 rounded-lg shadow-md hover:bg-blue-700"><i class="fas fa-save icon"></i>Save</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-            <div class="dm-mode-visible items-center space-x-4 mt-4 md:mt-0">
-                <button id="add-enemy-button" class="px-4 py-2 bg-green-600 rounded-lg shadow-md hover:bg-green-700"><i class="fas fa-plus icon"></i>Add Enemy</button>
-            </div>
-        </div>
-
-        <div class="flex flex-col items-center justify-center space-y-4 mb-4">
-            <div id="turn-order-container" class="flex items-center justify-center flex-wrap"></div>
-            <p id="current-turn-display" class="text-lg">Turn: Player 1</p>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 w-full">
-            <div class="flex flex-col space-y-4"><div class="container-box p-4"><h2 class="text-xl mb-4 text-center">PLAYERS</h2><div id="players-list" class="flex flex-col space-y-4"></div></div></div>
-            <div class="flex flex-col items-center space-y-8">
-                <div class="dice-display" id="dice-display">?</div>
-                <div class="container-box w-full p-4 text-center">
-                    <h2 class="text-xl mb-4">ACTION BOARD</h2>
-                    <div class="grid grid-cols-3 gap-2">
-                        <button id="attack-button" class="px-2 py-2 bg-blue-600 rounded-lg hover:bg-blue-700"><i class="fa-solid fa-wand-sparkles"></i></button>
-                        <button id="inventory-button" class="px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700"><i class="fa-solid fa-sack-dollar"></i></button>
-                        <button id="end-turn-button" class="px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700"><i class="fas fa-forward"></i></button>
-                        <div class="dm-turn-visible col-span-3"><button class="w-full px-2 py-2 bg-purple-600 rounded-lg hover:bg-purple-700">DM Features</button></div>
-                    </div>
-                </div>
-                <div class="container-box w-full p-4"><h2 class="text-xl text-center mb-4">ROLL DICE</h2><div id="dice-buttons" class="grid grid-cols-3 gap-2"><button data-sides="4" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D4</button><button data-sides="6" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D6</button><button data-sides="8" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D8</button><button data-sides="10" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D10</button><button data-sides="12" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D12</button><button data-sides="20" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">D20</button></div></div>
-                <div class="container-box w-full p-4 flex-grow flex flex-col"><div id="log-header" class="log-header mb-2"><h2 class="text-xl text-center">LOG</h2><span id="log-toggle-icon" class="toggle-icon">+</span></div><div id="log-content" class="hidden"><textarea id="log-box" class="log-box w-full h-48" readonly>Log start...\n</textarea></div></div>
-            </div>
-            <div class="flex flex-col space-y-4"><div class="container-box p-4"><h2 class="text-xl mb-4 text-center">ENEMIES</h2><div id="enemies-list" class="flex flex-col space-y-4"></div></div></div>
-        </div>
-        <div id="dm-calculator-panel" class="dm-turn-visible container-box p-4 mt-8 w-full max-w-2xl mx-auto flex-col"><h2 class="text-xl text-center mb-4">DM CALCULATOR</h2><div class="flex flex-col items-center space-y-4"><div class="flex justify-around w-full"><button class="px-4 py-2 bg-green-600 rounded-lg">Attacker(s)</button><button class="px-4 py-2 bg-green-600 rounded-lg">Abilities</button><button class="px-4 py-2 bg-green-600 rounded-lg">Type(s)</button><button class="px-4 py-2 bg-green-600 rounded-lg">Target</button></div><div class="w-full h-24 bg-gray-800 rounded-lg flex items-center justify-center"><p>Damage to be calculated...</p></div></div></div>
-    </div>
-
-    <!-- Modals -->
-    <div id="attack-modal" class="modal"><div class="modal-content container-box"><span class="close-button">&times;</span><h2 class="text-xl text-center mb-4">PLAYER ATTACKS</h2><ul id="attack-list" class="space-y-2"></ul></div></div>
-    <div id="targets-modal" class="modal"><div class="modal-content container-box"><span class="close-button">&times;</span><h2 id="targets-modal-title" class="text-xl text-center mb-4"></h2><div id="targets-list-container" class="space-y-2"></div></div></div>
-    <div id="share-item-modal" class="modal"><div class="modal-content container-box"><span class="close-button">&times;</span><h2 id="share-item-title" class="text-xl text-center mb-4">Share Item With...</h2><div id="share-player-list" class="space-y-2"></div></div></div>
-    <div id="inventory-modal" class="modal"><div class="modal-content container-box"><span class="close-button">&times;</span><h2 class="text-xl text-center mb-4">INVENTORY</h2><ul id="inventory-list" class="space-y-2"></ul></div></div>
-    <div id="profile-modal" class="modal">
-        <div class="modal-content container-box">
-            <span class="close-button">&times;</span>
-            <div class="modal-scroll">
-                <h2 id="profile-name" class="text-xl text-center mb-4"></h2>
-                <div id="profile-portrait" class="portrait mx-auto"></div>
-                <div class="flex flex-col items-center mt-4">
-                    <p id="profile-types" class="text-sm text-center mb-2"></p>
-                    <div id="profile-stats" class="grid grid-cols-2 gap-2 mt-4 w-full"></div>
-                    <h3 class="text-lg mt-4 mb-2">Inventory</h3>
-                    <div id="profile-inventory" class="w-full space-y-2"></div>
-                    <h3 class="text-lg mt-4 mb-2">Statuses</h3>
-                    <div id="profile-statuses" class="flex flex-wrap justify-center gap-2 mt-2"></div>
-                    <div id="type-info" class="w-full mt-4"></div>
-                </div>
-                <div id="dm-profile-edit" class="hidden dm-mode-visible-block flex-col mt-4 border-t-2 border-gray-600 pt-4">
-                    <h3 class="text-lg text-center mb-2">DM Controls</h3>
-                    <div class="flex items-center space-x-2 mb-2">
-                        <select id="dm-add-item-select" class="w-full px-2 py-1 rounded bg-gray-700 text-xs"></select>
-                        <button id="dm-add-item-btn" class="px-3 py-1 bg-green-600 rounded hover:bg-green-700 text-xs">Add Item</button>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <select id="dm-add-status-select" class="w-full px-2 py-1 rounded bg-gray-700 text-xs"></select>
-                        <input type="number" id="dm-status-duration-input" value="3" class="w-16 px-2 py-1 rounded bg-gray-700 text-xs text-center" placeholder="Dur">
-                        <button id="dm-add-status-btn" class="px-3 py-1 bg-purple-600 rounded hover:bg-purple-700 text-xs">Add Status</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div id="add-enemy-modal" class="modal"><div class="modal-content container-box"><span class="close-button">&times;</span><h2 class="text-xl text-center mb-4">ADD ENEMY</h2><div class="space-y-4"><div><label class="block text-sm">Pokemon Species</label><select id="pokemon-select" class="w-full px-2 py-1 rounded bg-gray-700"><option>Pikachu</option><option>Charmander</option></select></div><div><label class="block text-sm">Name</label><input type="text" id="enemy-name-input" class="w-full px-2 py-1 rounded bg-gray-700"></div><div class="grid grid-cols-2 gap-2"><div><label class="block text-sm">Level</label><input type="number" id="enemy-level-input" class="w-full px-2 py-1 rounded bg-gray-700" value="1"></div><div><label class="block text-sm">HP</label><input type="number" id="enemy-hp-input" class="w-full px-2 py-1 rounded bg-gray-700" value="100"></div></div><button id="submit-new-enemy" class="w-full px-4 py-2 bg-green-600 rounded-lg hover:bg-green-700">Add Enemy</button></div></div></div>
-    <div id="music-modal" class="modal">
-        <div class="modal-content container-box">
-            <span class="close-button">&times;</span>
-            <h2 class="text-xl text-center mb-4">MUSIC</h2>
-            <div class="flex flex-col space-y-4 w-full">
-                <div id="youtube-player" class="hidden"></div>
-                <div class="dm-mode-visible flex-col space-y-2 w-full">
-                    <input type="text" id="youtube-url-input" class="w-full bg-gray-700 text-xs p-2 rounded" placeholder="Enter YouTube URL">
-                    <div class="flex items-center space-x-4">
-                        <button id="play-pause-button" class="px-3 py-1 bg-green-600 rounded"><i class="fas fa-play"></i></button>
-                        <label class="flex items-center text-xs"><input type="checkbox" id="loop-checkbox" class="form-checkbox h-4 w-4 rounded text-green-600"><span class="ml-2">Loop</span></label>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <i class="fas fa-volume-down icon"></i>
-                    <input type="range" id="volume-slider" min="0" max="100" value="50" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
-                    <i class="fas fa-volume-up icon"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div id="transfer-item-modal" class="modal">
-        <div class="modal-content container-box">
-            <span class="close-button">&times;</span>
-            <h2 id="transfer-item-title" class="text-xl text-center mb-4">Transfer Item To...</h2>
-            <div id="transfer-target-list" class="space-y-2"></div>
-        </div>
-    </div>
+@ -615,22 +615,13 @@
 
     <script>
         $(function () {
-        	const scriptURL = "";
-        	function loadPlayers() {
-			return $.getJSON(scriptURL + "?sheet=Players");
-		}
-		
-		
-		function loadEnemies() {
-			return $.getJSON(scriptURL + "?sheet=Enemies");
-		}
-		
-		
-		function updateSheetCell(sheet, row, col, value) {
-			return $.ajax({
-			url: scriptURL,
-			type: "POST",
-			contentType: "application/json",
-			data: JSON.stringify({ action: "update", sheet, row, col, value })
-			});
-		}
-		
-		
-		function logAction(message, actor, target) {
-			return $.ajax({
-			url: scriptURL,
-			type: "POST",
-			contentType: "application/json",
-			data: JSON.stringify({ action: "log", message, actor, target })
-			});
-		}
+// Minimal helper to call your Apps Script
+            class PokeQuestApi {
+  /**
+   * @param {{scriptURL:string, apiKey?:string}} options
+   */
+                constructor(options) {
+                    if (!options || !options.scriptURL) throw new Error("scriptURL is required");
+                    this.scriptURL = options.scriptURL;
+    this.apiKey = options.apiKey || "public"; // default for your public mode
+                }
+
+  /**
+   * Low-level POST wrapper
+   * @param {object|object[]} payload A single request or an array for batch
+   * @returns {Promise<any>}
+   */
+                _post(payload) {
+                    return $.ajax({
+                        url: this.scriptURL,
+@ -642,108 +633,24 @@ class PokeQuestApi {
+                        contentType: "text/plain;charset=utf-8",
+                        data: JSON.stringify(payload)
+                    }).then(res => {
+      // If Apps Script returns a JSON string, parse it; otherwise trust jQuery
+      if (typeof res === "string") {
+        try { return JSON.parse(res); } catch { return res; }
+      }
+                        return res;
+                    });
+                }
+
+  /**
+   * Build request envelope with standard fields
+   */
+  _req(sheet, method, extra = {}) {
+    return Object.assign({
+      key: this.apiKey,
+      sheet: sheet,
+      method: method
+    }, extra);
+  }
+
+  /**
+   * List rows from a sheet (table)
+   * @param {string} sheet Sheet name (e.g., "Player")
+   * @param {{limit?:number, order?:'asc'|'desc', start_id?:number}} opts
+   * @returns {Promise<{status:number, data:any[], next?:number}>}
+   */
+  list(sheet, opts = {}) {
+    return this._post(this._req(sheet, "GET", {
+      limit: opts.limit,
+      order: (opts.order || "asc"),
+      start_id: opts.start_id
+    }));
+            }
+
+  /**
+   * Get a single row by its sheet row index (_id)
+   * @param {string} sheet
+   * @param {number} id Row index in the sheet (>=2)
+   */
+  get(sheet, id) {
+    return this._post(this._req(sheet, "GET", { id }));
+  }
+
+  /**
+   * Create (append) a new row. Keys in payload must match the sheet headers.
+   * @param {string} sheet
+   * @param {object} payload { ColumnName: value, ... }
+   */
+  create(sheet, payload) {
+    return this._post(this._req(sheet, "POST", { payload }));
+  }
+
+  /**
+   * Update specific columns in a row (by sheet row index)
+   * @param {string} sheet
+   * @param {number} id
+   * @param {object} payload { ColumnName: newValue, ... }
+   */
+  update(sheet, id, payload) {
+    return this._post(this._req(sheet, "PUT", { id, payload }));
+  }
+
+  /**
+   * Delete a row by id (clears cells on that row)
+   * @param {string} sheet
+   * @param {number} id
+   */
+  remove(sheet, id) {
+    return this._post(this._req(sheet, "DELETE", { id }));
+  }
+
+  /**
+   * Batch multiple operations in one HTTP request.
+   * @param {Array<{sheet:string, method:'GET'|'POST'|'PUT'|'DELETE', id?:number, payload?:object, limit?:number, order?:string, start_id?:number}>} ops
+   * @returns {Promise<Array<any>>}
+   *
+   * Example:
+   * api.batch([
+   *   { sheet:'Player', method:'GET', limit:100 },
+   *   { sheet:'Items', method:'POST', payload:{ Id: 3, Name:'Potion', Description:'Heals 20 HP'} }
+   * ])
+   */
+  batch(ops) {
+    const requests = ops.map(op => this._req(op.sheet, op.method, op));
+    return this._post(requests);
+  }
+}
+
+// Optional: convenience “table” models for your known sheets.
+// These just pin the sheet name so you don’t repeat it everywhere.
+            class Table {
+  constructor(api, sheet) {
+    this.api = api;
+    this.sheet = sheet;
+  }
+  list(opts)   { return this.api.list(this.sheet, opts); }
+  get(id)      { return this.api.get(this.sheet, id); }
+  create(row)  { return this.api.create(this.sheet, row); }
+  update(id,p) { return this.api.update(this.sheet, id, p); }
+  remove(id)   { return this.api.remove(this.sheet, id); }
+            }
+
+// Example registry using the sheets detected in your workbook
+            function createPokeQuestDb(api) {
+                return {
+                    Player: new Table(api, "Player"),
+@ -761,228 +668,172 @@ function createPokeQuestDb(api) {
+                };
+            }
+
+            const api = new PokeQuestApi({
+                scriptURL: "https://script.google.com/macros/s/AKfycbxEfLxpt4VtIRlD9MBGrZVBeHtIUA6Y5WdaE7Q_RC70CZzkMwKYonL1-rP2z8uioOAi/exec",
+  apiKey: "public" // or your private/admin key
+            });
+
+
+// READ (list all rows in a sheet)
+//api.list("Player", { limit: 100 }).then(console.log);
+
+// READ one by row id (_id is the sheet row index)
+api.get("Player", 2).then(console.log);
+
+// CREATE
+api.create("Player", { Id: 9, Name: "Ash", Type: "Player" }).then(console.log);
+
+// UPDATE (by row id)
+//api.update("Player", 2, { Name: "Misty" }).then(console.log);
+
+// DELETE (by row id)
+//api.remove("Player", 2).then(console.log);
+
         
+            // Global delegated bindings so re-rendered buttons still work
+            $(document)
+                .off('click', '#moves-button')
+                .on('click', '#moves-button', () => openMovesModal())
+                .off('click', '#inventory-button')
+                .on('click', '#inventory-button', () => openInventoryModal());
+
+            // Optional: make the X button inside the moves modal use your modal helper
+            $(document).on('click', '#moves-modal .close-button', () => closeModal && closeModal('moves'));
+
+
             // DOM Elements
             const ELS = {
-                body: $('body'), lobbyPage: $('#lobby-page'), dmWaitingRoom: $('#dm-waiting-room'), gameBoard: $('#game-board'), logBox: $('#log-box'), playersList: $('#players-list'), enemiesList: $('#enemies-list'), turnOrderContainer: $('#turn-order-container'), currentTurnDisplay: $('#current-turn-display'), playerIdentity: $('#player-identity'), diceDisplay: $('#dice-display'), roomCodeDisplay: $('#room-code-display'), waitingPlayerList: $('#waiting-player-list'), saveFileInput: $('#save-file-input'), playPauseBtn: $('#play-pause-button i'), lobbyWarning: $('#lobby-warning'), musicOptionsToggle: $('#music-options-toggle'),
+                body: $('body'), gameBoard: $('#game-board'), logBox: $('#log-box'), playersList: $('#players-list'), enemiesList: $('#enemies-list'), turnOrderContainer: $('#turn-order-container'), currentTurnDisplay: $('#current-turn-display'), playerIdentity: $('#player-identity'), diceDisplay: $('#dice-display'), actionBoard: $('#action-board')
             };
 
             // Game State
             let isDM = false, isDMTurn = false, currentPlayerId = null;
             let turnOrder = [], currentTurnIndex = 0;
             let players = [], enemies = [];
-            let itemToShare = null, youtubePlayer;
+            let teamPouch = { items: ['Potion', 'Revive Seed'], coins: 100 };
+            let itemToShare = null;
+            let itemToTransferFromPouch = null;
             let transferPayload = { sourceId: null, itemName: null };
 
             // --- Master Data ---
-            const ALL_ITEMS = ['Oran Berry', 'Pecha Berry', 'Sitrus Berry', 'Revive Seed', 'Potion', 'Max Elixir', 'Escape Orb'];
+            const SPECIES_TEMPLATES = {
+                Pikachu: { types: ['electric'], baseStats: { atk: 22, spAtk: 26, def: 18, spDef: 20, spd: 35, acc: 90 } },
+                Charmander: { types: ['fire'], baseStats: { atk: 24, spAtk: 24, def: 18, spDef: 20, spd: 30, acc: 88 } }
+            };
+
+            const POKEMON_IDS = {
+                'Pikachu': 25,
+                'Charmander': 4,
+                'Bulbasaur': 1,
+                'Squirtle': 7,
+                'Eevee': 133,
+                'Zubat': 41,
+                'Rattata': 19,
+                'Geodude': 74
+                };
+
+            const ALL_ITEMS = {
+                'Oran Berry': 'oran-berry',
+                'Pecha Berry': 'pecha-berry',
+                'Sitrus Berry': 'sitrus-berry',
+                'Revive Seed': 'revive-seed',
+                'Potion': 'potion',
+                'Max Elixir': 'max-elixir',
+                'Escape Orb': 'escape-orb',
+                'Team Pouch': 'cherish-ball',
+            };
             const ALL_STATUSES = [
                 { name: 'Burned', duration: -1, statEffect: { atk: 'negative' } },
                 { name: 'Poisoned', duration: 3 },
@@ -601,17 +218,112 @@
                 { name: 'DEF Up', duration: 3, statEffect: { def: 'positive' } },
             ];
 
-            const typeEffectiveness = { normal: { strengths: [], weaknesses: ['fighting'], immunities: ['ghost'], name: 'Normal' }, fire: { strengths: ['grass', 'ice', 'bug', 'steel'], weaknesses: ['water', 'ground', 'rock'], immunities: [], name: 'Fire' }, water: { strengths: ['fire', 'ground', 'rock'], weaknesses: ['electric', 'grass'], immunities: [], name: 'Water' }, electric: { strengths: ['water', 'flying'], weaknesses: ['ground'], immunities: [], name: 'Electric' }, grass: { strengths: ['water', 'ground', 'rock'], weaknesses: ['fire', 'ice', 'poison', 'flying', 'bug'], immunities: [], name: 'Grass' }, ice: { strengths: ['grass', 'ground', 'flying', 'dragon'], weaknesses: ['fire', 'fighting', 'rock', 'steel'], immunities: [], name: 'Ice' }, fighting: { strengths: ['normal', 'ice', 'rock', 'dark', 'steel'], weaknesses: ['flying', 'psychic', 'fairy'], immunities: [], name: 'Fighting' }, poison: { strengths: ['grass', 'fairy'], weaknesses: ['ground', 'psychic'], immunities: [], name: 'Poison' }, ground: { strengths: ['fire', 'electric', 'poison', 'rock', 'steel'], weaknesses: ['water', 'grass', 'ice'], immunities: ['electric'], name: 'Ground' }, flying: { strengths: ['fighting', 'bug', 'grass'], weaknesses: ['electric', 'ice', 'rock'], immunities: ['ground'], name: 'Flying' }, psychic: { strengths: ['fighting', 'poison'], weaknesses: ['bug', 'ghost', 'dark'], immunities: [], name: 'Psychic' }, bug: { strengths: ['grass', 'psychic', 'dark'], weaknesses: ['fire', 'flying', 'rock'], immunities: [], name: 'Bug' }, rock: { strengths: ['fire', 'ice', 'flying', 'bug'], weaknesses: ['water', 'grass', 'fighting', 'ground', 'steel'], immunities: [], name: 'Rock' }, ghost: { strengths: ['psychic', 'ghost'], weaknesses: ['ghost', 'dark'], immunities: ['normal', 'fighting'], name: 'Ghost' }, dragon: { strengths: ['dragon'], weaknesses: ['ice', 'dragon', 'fairy'], immunities: [], name: 'Dragon' }, dark: { strengths: ['psychic', 'ghost'], weaknesses: ['fighting', 'bug', 'fairy'], immunities: ['psychic'], name: 'Dark' }, steel: { strengths: ['ice', 'rock', 'fairy'], weaknesses: ['fire', 'fighting', 'ground'], immunities: ['poison'], name: 'Steel' }, fairy: { strengths: ['fighting', 'dragon', 'dark'], weaknesses: ['poison', 'steel'], immunities: ['dragon'], name: 'Fairy' } };
-            const initialPlayers = [{ id: 'p1', name: 'Pikachu', level: 5, hp: 100, atk: { val: 25, growth: 3, status: null }, spAtk: { val: 30, growth: 3, status: null }, def: { val: 20, growth: 2, status: null }, spDef: { val: 20, growth: 2, status: null }, spd: { val: 35, growth: 4, status: null }, acc: { val: 90, growth: 0, status: null }, types: ['electric'], abilities: [{ name: 'Thunder Shock', levelRequired: 1 }, { name: 'Quick Attack', levelRequired: 3 }], inventory: ['Oran Berry', 'Pecha Berry'], statuses: [], turnTaken: false }, { id: 'p2', name: 'Charmander', level: 5, hp: 110, atk: { val: 28, growth: 3, status: null }, spAtk: { val: 25, growth: 3, status: null }, def: { val: 22, growth: 2, status: null }, spDef: { val: 22, growth: 2, status: null }, spd: { val: 30, growth: 3, status: null }, acc: { val: 85, growth: 0, status: null }, types: ['fire'], abilities: [{ name: 'Ember', levelRequired: 1 }, { name: 'Scratch', levelRequired: 1 }], inventory: ['Sitrus Berry'], statuses: [], turnTaken: false }, { id: 'p3', name: 'Bulbasaur', level: 5, hp: 120, atk: { val: 22, growth: 2, status: null }, spAtk: { val: 28, growth: 3, status: null }, def: { val: 28, growth: 3, status: null }, spDef: { val: 28, growth: 3, status: null }, spd: { val: 25, growth: 2, status: null }, acc: { val: 95, growth: 0, status: null }, types: ['grass', 'poison'], abilities: [{ name: 'Vine Whip', levelRequired: 1 }], inventory: ['Revive Seed'], statuses: [{ name: 'Poisoned', duration: 3 }], turnTaken: false }, { id: 'p4', name: 'Squirtle', level: 5, hp: 105, atk: { val: 24, growth: 2, status: null }, spAtk: { val: 26, growth: 2, status: null }, def: { val: 30, growth: 4, status: null }, spDef: { val: 30, growth: 4, status: null }, spd: { val: 28, growth: 3, status: null }, acc: { val: 90, growth: 0, status: null }, types: ['water'], abilities: [{ name: 'Water Gun', levelRequired: 1 }], inventory: ['Potion'], statuses: [], turnTaken: false }, { id: 'p5', name: 'Eevee', level: 5, hp: 95, atk: { val: 30, growth: 3, status: null }, spAtk: { val: 30, growth: 3, status: null }, def: { val: 20, growth: 2, status: null }, spDef: { val: 20, growth: 2, status: null }, spd: { val: 40, growth: 4, status: null }, acc: { val: 88, growth: 0, status: null }, types: ['normal'], abilities: [{ name: 'Tackle', levelRequired: 1 }], inventory: [], statuses: [], turnTaken: false }];
-            const initialEnemies = [{ id: 'e1', name: 'Zubat', level: 3, hp: 80, atk: { val: 20, growth: 0, status: null }, spAtk: { val: 25, growth: 0, status: null }, def: { val: 15, growth: 0, status: null }, spDef: { val: 15, growth: 0, status: null }, spd: { val: 40, growth: 0, status: null }, acc: { val: 85, growth: 0, status: null }, types: ['poison', 'flying'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e2', name: 'Rattata', level: 4, hp: 95, atk: { val: 22, growth: 0, status: null }, spAtk: { val: 22, growth: 0, status: null }, def: { val: 18, growth: 0, status: null }, spDef: { val: 18, growth: 0, status: null }, spd: { val: 35, growth: 0, status: null }, acc: { val: 90, growth: 0, status: null }, types: ['normal'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e3', name: 'Geodude', level: 5, hp: 130, atk: { val: 28, growth: 0, status: null }, spAtk: { val: 15, growth: 0, status: null }, def: { val: 40, growth: 0, status: null }, spDef: { val: 40, growth: 0, status: null }, spd: { val: 15, growth: 0, status: null }, acc: { val: 80, growth: 0, status: null }, types: ['rock', 'ground'], turnTaken: false, statuses: [{ name: 'Paralyzed', duration: 1, statEffect: { spd: 'negative' } }], inventory: [] }];
-
+            const typeEffectiveness = { normal: { strengths: [], weaknesses: ['fighting'], immunities: ['ghost'], name: 'Normal' }, fire: { strengths: ['grass', 'ice', 'bug', 'steel'], weaknesses: ['water', 'ground', 'rock'], immunities: [], name: 'Fire' }, water: { strengths: ['fire', 'ground', 'rock'], weaknesses: ['electric', 'grass'], immunities: [], name: 'Water' }, electric: { strengths: ['water', 'flying'], weaknesses: ['ground'], immunities: [], name: 'Electric' }, grass: { strengths: ['water', 'ground', 'rock'], weaknesses: ['fire', 'ice', 'poison', 'flying', 'bug'], immunities: [], name: 'Grass' }, ice: { strengths: ['grass', 'ground', 'flying', 'dragon'], weaknesses: ['fire', 'fighting', 'rock', 'steel'], immunities: [], name: 'Ice' }, fighting: { strengths: ['normal', 'ice', 'rock', 'dark', 'steel'], weaknesses: ['flying', 'psychic', 'fairy'], immunities: [], name: 'Fighting' }, poison: { strengths: ['grass', 'fairy'], weaknesses: ['ground', 'psychic'], immunities: [], name: 'Poison' }, ground: { strengths: ['fire', 'electric', 'poison', 'rock', 'steel'], weaknesses: ['water', 'grass', 'ice'], immunities: ['electric'], name: 'Ground' }, flying: { strengths: ['fighting', 'bug', 'grass'], weaknesses: ['electric', 'ice', 'rock'], immunities: ['ground'], name: 'Flying' }, psychic: { strengths: ['fighting', 'poison'], weaknesses: ['bug', 'ghost', 'dark'], immunities: [], name: 'Psychic' }, bug: { strengths: ['grass', 'psychic', 'dark'], weaknesses: ['fire', 'flying', 'rock'], immunities: [], name: 'Bug' }, rock: { strengths: ['fire', 'ice', 'flying', 'bug'], weaknesses: ['water', 'grass', 'fighting', 'ground', 'steel'], immunities: ['normal'], name: 'Rock' }, ghost: { strengths: ['psychic', 'ghost'], weaknesses: ['ghost', 'dark'], immunities: ['normal', 'fighting'], name: 'Ghost' }, dragon: { strengths: ['dragon'], weaknesses: ['ice', 'dragon', 'fairy'], immunities: [], name: 'Dragon' }, dark: { strengths: ['psychic', 'ghost'], weaknesses: ['fighting', 'bug', 'fairy'], immunities: ['psychic'], name: 'Dark' }, steel: { strengths: ['ice', 'rock', 'fairy'], weaknesses: ['fire', 'fighting', 'ground'], immunities: ['poison'], name: 'Steel' }, fairy: { strengths: ['fighting', 'dragon', 'dark'], weaknesses: ['poison', 'steel'], immunities: ['dragon'], name: 'Fairy' } };
+            const initialPlayers = [
+                {
+                    id: 'p1', name: 'Pikachu', level: 5, hp: 100,
+                    atk: { val: 25, growth: 3, status: null }, spAtk: { val: 30, growth: 3, status: null },
+                    def: { val: 20, growth: 2, status: null }, spDef: { val: 20, growth: 2, status: null },
+                    spd: { val: 35, growth: 4, status: null }, acc: { val: 90, growth: 0, status: null },
+                    types: ['electric'],
+                    abilities: [
+                        { name: 'Thunder Shock', levelRequired: 1, description: 'Light Electric damage; great against Water/Flying.' },
+                        { name: 'Quick Attack', levelRequired: 3, description: 'Swift Normal strike; often acts early.' }
+                    ],
+                    specialMove: { name: 'Volt Tackle', levelRequired: 7, description: 'High-power Electric charge. Risky but devastating.' },
+                    inventory: ['Oran Berry', 'Pecha Berry', 'Team Pouch'],
+                    statuses: [], turnTaken: false
+                },
+                {
+                    id: 'p2', name: 'Charmander', level: 5, hp: 110,
+                    atk: { val: 28, growth: 3, status: null }, spAtk: { val: 25, growth: 3, status: null },
+                    def: { val: 22, growth: 2, status: null }, spDef: { val: 22, growth: 2, status: null },
+                    spd: { val: 30, growth: 3, status: null }, acc: { val: 85, growth: 0, status: null },
+                    types: ['fire'],
+                    abilities: [
+                        { name: 'Ember', levelRequired: 1, description: 'Small Fire damage; can singe over time.' },
+                        { name: 'Scratch', levelRequired: 1, description: 'Basic claw attack. Reliable in a pinch.' }
+                    ],
+                    specialMove: { name: 'Flamethrower', levelRequired: 7, description: 'Strong Fire stream; excels at groups and Grass/Ice.' },
+                    inventory: ['Sitrus Berry'],
+                    statuses: [], turnTaken: false
+                },
+                {
+                    id: 'p3', name: 'Bulbasaur', level: 5, hp: 120,
+                    atk: { val: 22, growth: 2, status: null }, spAtk: { val: 28, growth: 3, status: null },
+                    def: { val: 28, growth: 3, status: null }, spDef: { val: 28, growth: 3, status: null },
+                    spd: { val: 25, growth: 2, status: null }, acc: { val: 95, growth: 0, status: null },
+                    types: ['grass', 'poison'],
+                    abilities: [
+                        { name: 'Vine Whip', levelRequired: 1, description: 'Grass lash; hits Ground/Rock/Water effectively.' }
+                    ],
+                    specialMove: { name: 'Solar Beam', levelRequired: 7, description: 'Massive Grass blast after gathering light.' },
+                    inventory: ['Revive Seed'],
+                    statuses: [{ name: 'Poisoned', duration: 3 }],
+                    turnTaken: false
+                },
+                {
+                    id: 'p4', name: 'Squirtle', level: 5, hp: 105,
+                    atk: { val: 24, growth: 2, status: null }, spAtk: { val: 26, growth: 2, status: null },
+                    def: { val: 30, growth: 4, status: null }, spDef: { val: 30, growth: 4, status: null },
+                    spd: { val: 28, growth: 3, status: null }, acc: { val: 90, growth: 0, status: null },
+                    types: ['water'],
+                    abilities: [
+                        { name: 'Water Gun', levelRequired: 1, description: 'Water burst; great vs Fire/Ground/Rock.' }
+                    ],
+                    specialMove: { name: 'Hydro Pump', levelRequired: 7, description: 'High-pressure Water cannon with big impact.' },
+                    inventory: ['Potion'],
+                    statuses: [], turnTaken: false
+                },
+                {
+                    id: 'p5', name: 'Eevee', level: 5, hp: 95,
+                    atk: { val: 30, growth: 3, status: null }, spAtk: { val: 30, growth: 3, status: null },
+                    def: { val: 20, growth: 2, status: null }, spDef: { val: 20, growth: 2, status: null },
+                    spd: { val: 40, growth: 4, status: null }, acc: { val: 88, growth: 0, status: null },
+                    types: ['normal'],
+                    abilities: [
+                        { name: 'Tackle', levelRequired: 1, description: 'Classic body-check. Simple and steady.' }
+                    ],
+                    specialMove: { name: 'Last Resort', levelRequired: 7, description: 'All-out Normal strike unleashed at higher levels.' },
+                    inventory: [],
+                    statuses: [], turnTaken: false
+                }
+            ];
+            const initialEnemies = [{ id: 'e1', name: 'Zubat', level: 3, hp: 80, atk: { val: 20, growth: 0, status: null }, spAtk: { val: 25, growth: 0, status: null }, def: { val: 15, growth: 0, status: null }, spDef: { val: 15, growth: 0, status: null }, spd: { val: 40, growth: 0, status: null }, acc: { val: 85, growth: 0, status: null }, types: ['poison', 'flying'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e2', name: 'Rattata', level: 4, hp: 95, atk: { val: 22, growth: 0, status: null }, spAtk: { val: 22, growth: 0, status: null }, def: { val: 18, growth: 0, status: null }, spDef: { val: 18, growth: 0, status: null }, spd: { val: 35, growth: 0, status: null }, acc: { val: 90, growth: 0, status: null }, types: ['normal'], turnTaken: false, statuses: [], inventory: [] }, { id: 'e3', name: 'Geodude', level: 5, hp: 130, atk: { val: 28, growth: 0, status: null }, spAtk: { val: 15, growth: 0, status: null }, def: { val: 40, growth: 0, status: null }, spDef: { val: 40, growth: 0, status: null }, spd: { val: 15, growth: 0, status: null }, acc: { val: 80, growth: 0, status: null }, types: ['rock', 'ground'], turnTaken: false, statuses: [{ name: 'Paralyzed', duration: 1, statEffect: { spd: 'negative' } }], inventory: [] }];		
+							
             // --- Helpers ---
             function getStatusIcon(statusName) {
                 const iconMap = { 'Burned': 'fa-fire text-red-500', 'Poisoned': 'fa-skull-crossbones text-purple-500', 'Paralyzed': 'fa-bolt text-yellow-400', 'Asleep': 'fa-dizzy text-blue-400', 'Frozen': 'fa-snowflake text-cyan-300', 'ATK Up': 'fa-angle-double-up text-green-400', 'DEF Up': 'fa-angle-double-up text-green-400' };
                 return `<i class="fas ${iconMap[statusName] || 'fa-question-circle text-gray-400'}"></i>`;
             }
-            function getTypeIcon(typeName) { const type = typeEffectiveness[typeName.toLowerCase()]; return type ? `<span class="type-icon type-${typeName.toLowerCase()}" title="${type.name}">${type.name.substring(0, 2).toUpperCase()}</span>` : ''; }
+            function getPokemonIcon(name) {
+                var id = POKEMON_IDS[name];
+                if (!id) {
+                    return '<i class="fas fa-user-circle fa-3x text-gray-400"></i>';
+                }
+                return '<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' +
+                    id +
+                    '.png" alt="' + name + '" class="w-full h-full object-contain">';
+            }
+            function getItemIcon(name) {
+                var iconName = ALL_ITEMS[name];
+                if (!iconName) {
+                    return '<i class="fas fa-box-open icon"></i>';
+                }
+                return '<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/' +
+                    iconName +
+                    '.png" alt="' + name + '" class="item-icon">';
+            }
+
+            function getTypeIcon(typeName) {
+                var type = typeEffectiveness[typeName.toLowerCase()];
+                if (!type) return '';
+                return '<span class="type-icon type-' + typeName.toLowerCase() + '" title="' + type.name + '">' +
+                    type.name.substring(0, 2).toUpperCase() +
+                    '</span>';
+            }
             function getEffectiveStat(char, statName) {
+                if (!char[statName] && statName !== 'hp') return { value: 0, statusEffect: null };
                 let value = statName === 'hp' ? char.hp : char[statName].val;
                 let statusEffect = null;
                 if (char.statuses) {
@@ -632,38 +344,120 @@
             }
 
             // --- View Management ---
-            function showScreen(screenId) { ELS.lobbyPage.add(ELS.dmWaitingRoom).add(ELS.gameBoard).hide(); $('#' + screenId).css('display', 'flex'); }
-            function logAction(message) { const timestamp = new Date().toLocaleTimeString(); ELS.logBox.val(`[${timestamp}] ${message}\n` + ELS.logBox.val()).scrollTop(0); }
-            function renderAll() { renderCharacters(); renderTurnOrder(); }
+            function logAction(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                ELS.logBox
+                    .val(`[${timestamp}] ${message}\n` + ELS.logBox.val())
+                    .scrollTop(0);
+            }
+            function renderAll() { renderCharacters(); renderTurnOrder(); renderActionBoard(); }
             function renderCharacters() {
                 const playersHtml = players.map(p => {
-                    const glowClass = hasNegativeStatus(p) ? 'negative-status-glow' : '';
-                    return `<div class="flex items-center space-x-2"><div class="portrait ${glowClass}" data-id="${p.id}"><i class="fas fa-user-circle fa-3x text-gray-400"></i></div><div class="flex-grow"><h3>${p.name} (Lvl ${p.level})</h3><span class="text-xs">HP: ${p.hp}</span><div class="dm-visible-inline items-center space-x-2"><input type="checkbox" id="turnTaken-${p.id}" data-id="${p.id}" ${p.turnTaken ? 'checked' : ''} class="turn-taken-checkbox form-checkbox h-4 w-4"><label for="turnTaken-${p.id}" class="text-xs">Turn</label></div></div></div>`;
+			const glowClass = hasNegativeStatus(p) ? 'negative-status-glow' : '';
+                    return `<div class="flex items-center space-x-2">
+			<div class="portrait ${glowClass}" data-id="${p.id}">${getPokemonIcon(p.name)}</div>
+                  <div class="flex-grow">
+                    <h3>${p.name} (Lvl ${p.level})</h3>
+                    <span class="text-xs">HP: ${p.hp}</span>
+@ -991,618 +842,456 @@ api.create("Player", { Id: 9, Name: "Ash", Type: "Player" }).then(console.log);
                 }).join('');
                 ELS.playersList.html(playersHtml);
 
+			
                 const enemiesHtml = enemies.map(e => {
-                    const glowClass = hasNegativeStatus(e) ? 'negative-status-glow' : '';
-                    return `<div class="flex items-center space-x-2"><div class="flex-grow text-right"><h3>${e.name} (Lvl ${e.level})</h3><div class="flex justify-end items-center space-x-2"><span class="text-xs">HP: ${e.hp}</span><div class="dm-visible-inline items-center space-x-2"><input type="checkbox" id="turnTaken-${e.id}" data-id="${e.id}" ${e.turnTaken ? 'checked' : ''} class="turn-taken-checkbox form-checkbox h-4 w-4"><label for="turnTaken-${e.id}" class="text-xs">Turn</label><button class="remove-enemy-btn px-2 py-1 bg-red-600 rounded-md text-xs" data-id="${e.id}">X</button></div></div></div><div class="portrait ${glowClass}" data-id="${e.id}"><i class="fas fa-dragon fa-3x text-gray-400"></i></div></div>`;
+			const glowClass = hasNegativeStatus(e) ? 'negative-status-glow' : '';
+			const levelText = isDM ? `(Lvl ${e.level})` : '';
+			const hpText = isDM ? `<span class="text-xs">HP: ${e.hp}</span>` : '';
+			const dmControls = isDM ? `<div class="flex justify-end items-center space-x-2"><button class="remove-enemy-btn px-2 py-1 bg-red-600 rounded-md text-xs" data-id="${e.id}">X</button></div>` : '';
+                    return `<div class="flex items-center space-x-2">
+			<div class="flex-grow text-right">
+			<h3>${e.name} ${levelText}</h3>
+			<div class="flex justify-end items-center space-x-2">${hpText}${dmControls}</div>
+			</div>
+			<div class="portrait ${glowClass}" data-id="${e.id}">${getPokemonIcon(e.name)}</div>
+                </div>`;
                 }).join('');
                 ELS.enemiesList.html(enemiesHtml);
             }
             function renderTurnOrder() {
                 turnOrder = [...players, ...enemies].sort((a, b) => getEffectiveStat(b, 'spd').value - getEffectiveStat(a, 'spd').value);
+                turnOrder.push({ id: 'dm', name: 'DM', isDM: true });
+
                 const turnOrderHtml = turnOrder.map((char, index) => {
                     let classes = 'turn-bubble';
                     if (index === currentTurnIndex) classes += ' current'; else if (index === (currentTurnIndex - 1 + turnOrder.length) % turnOrder.length) classes += ' last'; else if (index === (currentTurnIndex + 1) % turnOrder.length) classes += ' next';
-                    return `<div class="turn-bubble-container"><div class="${classes}">${char.name.substring(0, 1)}</div><span class="turn-bubble-popover">${char.name}</span></div>`;
+                    const initial = char.isDM ? `<i class="fas fa-crown"></i>` : getPokemonIcon(char.name);
+                    return `<div class="turn-bubble-container"><div class="${classes}">${initial}</div><span class="turn-bubble-popover">${char.name}</span></div>`;
                 }).join('');
                 ELS.turnOrderContainer.html(turnOrderHtml);
-                const currentChar = turnOrder[currentTurnIndex];
-                ELS.currentTurnDisplay.text(`Active Turn: ${currentChar ? currentChar.name : 'DM'}`);
-                $('#attack-button, #inventory-button').toggleClass('hidden', isDMTurn);
-            }
 
+                const currentChar = turnOrder[currentTurnIndex];
+                isDMTurn = currentChar?.isDM ?? false;
+                ELS.body.toggleClass('dm-turn', isDMTurn);
+                ELS.currentTurnDisplay.text(`Active Turn: ${currentChar ? currentChar.name : 'Start'}`);
+            }
+            function renderActionBoard() {
+                ELS.actionBoard.empty();
+                const activeChar = turnOrder[currentTurnIndex];
+                const isEnemyTurn = !!activeChar && enemies.some(e => e.id === activeChar.id);
+                if (isDM) {
+                    ELS.actionBoard.append(`
+                                <button id="dm-force-turn-btn" class="col-span-1 px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Force DM Turn"><i class="fas fa-crown"></i></button>
+                                        <button id="dm-reset-turns-btn" class="col-span-1 px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="Reset All Turns"><i class="fas fa-redo"></i></button>
+                                <button id="dm-end-turn-btn" class="col-span-1 px-2 py-2 bg-purple-600 rounded-lg hover:bg-purple-700" title="End DM Turn"><i class="fas fa-forward"></i></button>
+                            `);
+                    if (isEnemyTurn) {
+                        ELS.actionBoard.append(`
+                          <button id="moves-button" class="col-span-1 px-2 py-2 bg-blue-600 rounded-lg hover:bg-blue-700" title="Moves"><i class="fa-solid fa-wand-sparkles"></i></button>
+                          <button id="inventory-button" class="col-span-1 px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>
+                        `);
+                    }
+                    $('#dm-force-turn-btn').on('click', () => {
+                        const dmIndex = turnOrder.findIndex(c => c.id === 'dm');
+                        if (dmIndex > -1) {
+                            currentTurnIndex = dmIndex;
+                            logAction("DM forced their turn.");
+                            renderAll();
+                    }
+                    });
+                    $('#dm-reset-turns-btn').on('click', () => {
+                        currentTurnIndex = 0;
+                        players.forEach(p => p.turnTaken = false);
+                        enemies.forEach(e => e.turnTaken = false);
+                        logAction("DM reset all character turns.");
+                        renderAll();
+                    });
+                    $('#dm-end-turn-btn').on('click', () => {
+                        logAction("DM ended their turn.");
+                        currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
+                        players.forEach(p => p.turnTaken = false);
+                        enemies.forEach(e => e.turnTaken = false);
+                        renderAll();
+                    });
+                } else {
+                    const isPlayerTurn = !isDMTurn && players.some(p => p.id === turnOrder[currentTurnIndex]?.id && p.id === currentPlayerId);
+                    if (isPlayerTurn) {
+                        ELS.actionBoard.append(`
+                            <button id="moves-button" class="px-2 py-2 bg-blue-600 rounded-lg hover:bg-blue-700" title="Moves"><i class="fa-solid fa-wand-sparkles"></i></button>
+                                           <button id="inventory-button" class="px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>
+                            <button id="end-turn-button" class="px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="End Turn"><i class="fas fa-forward"></i></button>
+                        `);
+                        $('#end-turn-button').on('click', () => {
+                            const previousChar = turnOrder[currentTurnIndex];
+                            if (previousChar) {
+                                previousChar.turnTaken = true;
+                                logAction(`${previousChar.name} ended their turn.`);
+                            }
+                            currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
+                            renderAll();
+                        });
+                    } else {
+                        ELS.actionBoard.append(`<div class="col-span-3 text-center text-gray-400">Waiting for your turn...</div>`);
+                    }
+                }
+            }
             // --- Game Logic ---
             function rollDie(sides, rollerType) { const roller = rollerType === 'player' ? (turnOrder[currentTurnIndex]?.name || "Player") : "DM"; const result = Math.floor(Math.random() * sides) + 1; ELS.diceDisplay.text(result).removeClass('dice-animate'); void ELS.diceDisplay[0].offsetWidth; ELS.diceDisplay.addClass('dice-animate'); logAction(`${roller} rolled a d${sides} and got ${result}.`); }
-            function takeDMTurn() { isDMTurn = true; ELS.body.addClass('dm-turn'); currentTurnIndex = -1; logAction('The DM is taking a turn.'); renderTurnOrder(); }
 
             // --- Modals ---
             function openModal(modalId) { $(`#${modalId}-modal`).addClass('flex'); }
@@ -674,108 +468,409 @@
                 $('#attack-list').html(attacksHtml); openModal('attack');
             }
             function selectTargetsModal(attackName) { closeModal('attack'); $('#targets-modal-title').text(`Target for ${attackName}`); const targetsHtml = enemies.map(enemy => `<button class="target-btn w-full px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600" data-attack-name="${attackName}" data-target-name="${enemy.name}">${enemy.name}</button>`).join(''); $('#targets-list-container').html(targetsHtml); openModal('targets'); }
-            function openInventoryModal() {
-                const player = players.find(p => p.id === currentPlayerId); if (!player) return;
-                const inventoryHtml = (player.inventory || []).map(item => `<li class="p-2 rounded-lg bg-gray-700 flex justify-between items-center"><span><i class="fas fa-box-open icon"></i>${item}</span><div class="space-x-2"><button class="use-item-btn px-2 py-1 bg-blue-600 rounded-md text-xs" data-item="${item}">Use</button><button class="share-item-btn px-2 py-1 bg-green-600 rounded-md text-xs" data-item="${item}">Share</button></div></li>`).join('');
-                $('#inventory-list').html(inventoryHtml); openModal('inventory');
+            function openInventoryModal(targetId) {
+                let char = null;
+                if (targetId) {
+                    char = players.find(p => p.id === targetId) || enemies.find(e => e.id === targetId);
+                } else if (isDM) {
+                    const active = turnOrder[currentTurnIndex];
+                    char = players.find(p => p.id === active?.id) || enemies.find(e => e.id === active?.id);
+                } else {
+                    char = players.find(p => p.id === currentPlayerId);
+                }
+                if (!char) return;
+
+                const isOwnerOnTurn = (!isDM && char.id === currentPlayerId);
+                const items = char.inventory || [];
+
+                const inventoryHtml = items.length
+                    ? items.map(item => {
+                        const actions = isOwnerOnTurn
+                            ? `<div class="space-x-2">
+                       <button class="use-item-btn px-2 py-1 bg-blue-600 rounded-md text-xs" data-item="${item}">Use</button>
+                       <button class="share-item-btn px-2 py-1 bg-green-600 rounded-md text-xs" data-item="${item}">Share</button>
+                     </div>`
+                            : '';
+                        return `<li class="p-2 rounded-lg bg-gray-700 flex justify-between items-center">
+                          <span>${getItemIcon(item)}${item}</span>
+                          ${actions}
+                        </li>`;
+                    }).join('')
+                    : '<li class="p-2 rounded-lg bg-gray-700 text-center text-xs text-gray-300">Empty</li>';
+
+                $('#inventory-list').html(inventoryHtml);
+                openModal('inventory');
             }
             function openUseItemModal(item) { closeModal('inventory'); $('#share-item-title').text(`Use "${item}" on...`); const allTargets = [...players, ...enemies]; const listHtml = allTargets.map(target => `<button class="confirm-use-item-btn w-full px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500" data-item="${item}" data-target-id="${target.id}">${target.name}</button>`).join(''); $('#share-player-list').html(listHtml); openModal('share-item'); }
             function openShareModal(item) { closeModal('inventory'); itemToShare = item; const listHtml = players.filter(p => p.id !== currentPlayerId).map(p => `<button class="confirm-share-btn w-full px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500" data-recipient-id="${p.id}">${p.name}</button>`).join(''); $('#share-player-list').html(listHtml); $('#share-item-title').text(`Share "${item}" with...`); openModal('share-item'); }
+            function openMovesModal(targetId) {
+                // Pick which character to show:
+                // - If DM and there's an active turn, show that active character (enemy or player)
+                // - Else show the current player
+                let char = null;
+                if (targetId) {
+                    char = players.find(p => p.id === targetId) || enemies.find(e => e.id === targetId);
+                } else if (isDM) {
+                    const active = turnOrder[currentTurnIndex];
+                    char = players.find(p => p.id === active?.id) || enemies.find(e => e.id === active?.id);
+                } else {
+                    char = players.find(p => p.id === currentPlayerId);
+                }
+                if (!char) return;
+
+                // SPECIAL MOVE (top)
+                const s = char.specialMove;
+                if (s) {
+                    const specialCanUse = (char.level >= (s.levelRequired ?? 1));
+                    $('#special-move').html(`
+                      <div class="move-card ${specialCanUse ? '' : 'move-locked'}">
+                        <div class="flex items-center justify-between">
+                          <span class="move-title">⭐ ${s.name}</span>
+                          <span class="move-meta">Req Lvl ${s.levelRequired ?? 1}</span>
+                        </div>
+                        <p class="text-sm mt-1">${s.description || ''}</p>
+                      </div>
+                    `);
+                } else {
+                    $('#special-move').empty();
+                }
+
+                // REGULAR MOVES (sorted by required level asc)
+                const sortedMoves = [...(char.abilities || [])].sort((a, b) => {
+                    const al = Number.isFinite(+a.levelRequired) ? +a.levelRequired : 1;
+                    const bl = Number.isFinite(+b.levelRequired) ? +b.levelRequired : 1;
+                    return (al - bl) || a.name.localeCompare(b.name);
+                });
+                const movesHtml = sortedMoves.map(m => {
+                    const canUse = char.level >= (m.levelRequired ?? 1);
+                    return `
+                      <li>
+                        <div class="move-card ${canUse ? '' : 'move-locked'}">
+                          <div class="flex items-center justify-between">
+                            <span class="move-title">${m.name}</span>
+                            <span class="move-meta">Req Lvl ${m.levelRequired ?? 1}</span>
+                          </div>
+                          <p class="text-sm mt-1">${m.description || ''}</p>
+                        </div>
+                      </li>
+                    `;
+                }).join('');
+                $('#moves-list').html(movesHtml);
+
+                // Open
+                openModal('moves');
+            }
+
+            function openTeamPouchModal() {
+                const pouchHolder = players.find(p => p.inventory && p.inventory.includes('Team Pouch'));
+                const isPlayerTurn = players.some(p => p.id === turnOrder[currentTurnIndex]?.id && p.id === currentPlayerId);
+                const canManagePouch = isDM || (pouchHolder && pouchHolder.id === currentPlayerId && isPlayerTurn);
+
+                // Render coins
+                $('#pouch-coins-display').text(teamPouch.coins);
+                if (isDM) {
+                    $('#dm-pouch-coins-input').val(teamPouch.coins).show();
+                    $('#pouch-coins-display').hide();
+                    $('#dm-pouch-controls').show();
+                    $('#dm-add-pouch-item-select').html(Object.keys(ALL_ITEMS).filter(i => i !== 'Team Pouch').map(i => `<option value="${i}">${i}</option>`).join(''));
+                } else {
+                    $('#dm-pouch-coins-input').hide();
+                    $('#pouch-coins-display').show();
+                    $('#dm-pouch-controls').hide();
+                }
+
+                // Render items
+                const teamItemsHtml = teamPouch.items.length
+                    ? teamPouch.items.map(item => {
+                        const transferButton = canManagePouch
+                            ? `<button class="transfer-from-pouch-btn px-2 py-1 bg-blue-600 rounded-md text-xs" data-item="${item}" title="Transfer"><i class="fas fa-exchange-alt"></i></button>`
+                            : '';
+                        return `<li class="p-2 rounded-lg bg-gray-700 flex justify-between items-center">
+                                  <span>${getItemIcon(item)}${item}</span>
+                                  ${transferButton}
+                                </li>`;
+                    }).join('')
+                    : '<li class="p-2 rounded-lg bg-gray-700 text-center text-xs text-gray-300">Empty</li>';
+                $('#pouch-inventory-list').html(teamItemsHtml);
+
+                openModal('team-pouch');
+            }
+
+            function openTransferFromPouchModal(item) {
+                closeModal('team-pouch');
+                itemToTransferFromPouch = item;
+                const allTargets = [...players, ...enemies];
+                const listHtml = allTargets.map(p =>
+                    `<button class="confirm-transfer-from-pouch-btn w-full px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500" data-recipient-id="${p.id}">${p.name}</button>`
+                ).join('');
+                $('#transfer-from-pouch-player-list').html(listHtml);
+                $('#transfer-from-pouch-title').text(`Transfer "${item}" to...`);
+                openModal('transfer-from-pouch');
+            }
+
 
             // --- PROFILE MODAL ---
             function openProfileModal(id) {
-                const char = players.find(p => p.id === id) || enemies.find(e => e.id === id);
-                if (!char) return;
-
-                $('#profile-modal').attr('data-char-id', id);
-                $('#profile-name').text(`${char.name} (Lvl ${char.level})`);
-                $('#profile-portrait').html(players.find(p => p.id === id) ? '<i class="fas fa-user-circle fa-3x text-gray-400"></i>' : '<i class="fas fa-dragon fa-3x text-gray-400"></i>');
-                $('#profile-types').html(`Type: ${char.types.map(t => getTypeIcon(t)).join('')}`);
-
-                // STATS
-                const statNames = { hp: 'HP', atk: 'ATK', spAtk: 'SP.ATK', def: 'DEF', spDef: 'SP.DEF', spd: 'SPD', acc: 'AC' };
-                const statIcons = { hp: 'fas fa-heart text-red-500', atk: 'fas fa-khanda text-orange-400', spAtk: 'fas fa-magic text-purple-400', def: 'fas fa-shield-alt text-blue-400', spDef: 'fas fa-shield-virus text-blue-400', spd: 'fas fa-running text-green-400', acc: 'fas fa-crosshairs text-yellow-300' };
-                const statsHtml = Object.keys(statNames).map(statKey => {
-                    const { value: effectiveValue, statusEffect } = getEffectiveStat(char, statKey);
-                    const baseValue = (statKey === 'hp') ? char.hp : char[statKey].val;
-                    let statClass = '';
-                    if (statusEffect === 'positive') statClass = 'stat-positive'; else if (statusEffect === 'negative') statClass = 'stat-negative';
-                    const valueDisplay = isDM ? `<input type="number" class="dm-stat-input" value="${baseValue}" data-stat-key="${statKey}">` : `<span class="${statClass} ml-1">${effectiveValue}</span>`;
-                    const growthDisplay = isDM && statKey !== 'hp' && char[statKey] ? `(+${char[statKey].growth})` : '';
-                    return `<div class="stat-box col-span-1"><i class="${statIcons[statKey]} icon"></i><span>${statNames[statKey]}:</span> ${valueDisplay} ${growthDisplay}</div>`;
-                }).join('');
-                $('#profile-stats').html(statsHtml);
-
-                // INVENTORY
-                const inventoryHtml = (char.inventory || []).map((item, index) => {
-                    const dmButtons = isDM ? `<div class="space-x-1"><button class="dm-transfer-item-btn px-2 py-1 bg-blue-600 rounded text-xs" data-item-name="${item}"><i class="fas fa-exchange-alt"></i></button><button class="dm-remove-item-btn px-2 py-1 bg-red-600 rounded text-xs" data-item-index="${index}"><i class="fas fa-times"></i></button></div>` : '';
-                    return `<div class="p-1 rounded bg-gray-800 flex justify-between items-center text-xs"><span><i class="fas fa-box-open icon"></i>${item}</span>${dmButtons}</div>`;
-                }).join('');
-                $('#profile-inventory').html(inventoryHtml || '<p class="text-xs text-gray-500 text-center">Empty</p>');
-
-                // STATUSES
-                const statusesHtml = (char.statuses || []).map((s, index) => {
-                    const dmButton = isDM ? `<button class="dm-remove-status-btn ml-2 text-red-500" data-status-index="${index}">&times;</button>` : '';
-                    return `<span class="px-2 py-1 bg-gray-800 text-xs rounded-full flex items-center">${getStatusIcon(s.name)} ${s.name} (${s.duration})${dmButton}</span>`;
-                }).join('')
-                $('#profile-statuses').html(statusesHtml || '<p class="text-xs text-gray-500 text-center">None</p>');
-
-                // TYPE EFFECTIVENESS (RESTORED)
-                const typeInfoContainer = $('#type-info');
-                let strengthsHtml = '', weaknessesHtml = '', immunitiesHtml = '';
-                char.types.forEach(type => {
-                    const typeData = typeEffectiveness[type.toLowerCase()];
-                    if (!typeData) return;
-                    if (typeData.strengths.length > 0) strengthsHtml += `<p class="text-sm font-bold mt-2">${typeData.name} Strong Against:</p><div class="flex flex-wrap gap-1">${typeData.strengths.map(s => getTypeIcon(s)).join('')}</div>`;
-                    if (typeData.weaknesses.length > 0) weaknessesHtml += `<p class="text-sm font-bold mt-2">${typeData.name} Weak Against:</p><div class="flex flex-wrap gap-1">${typeData.weaknesses.map(w => getTypeIcon(w)).join('')}</div>`;
-                    if (typeData.immunities && typeData.immunities.length > 0) immunitiesHtml += `<p class="text-sm font-bold mt-2">${typeData.name} Immune To:</p><div class="flex flex-wrap gap-1">${typeData.immunities.map(i => getTypeIcon(i)).join('')}</div>`;
+		    const char = players.find(p => p.id === id) || enemies.find(e => e.id === id);
+		    if (!char) return;
+		
+		    $('#profile-modal').attr('data-char-id', id);
+		    $('#profile-name').text(`${char.name} (Lvl ${char.level})`);
+		    $('#profile-portrait').html(getPokemonIcon(char.name));
+		
+		    $('#profile-types').html(`Type: ${char.types.map(t => getTypeIcon(t)).join('')}`);
+		
+		    // STATS
+		    const statNames = { hp: 'HP', atk: 'ATK', spAtk: 'SP.A', def: 'DEF', spDef: 'SP.D', spd: 'SPD', acc: 'AC' };
+		    const statIcons = { hp: 'fas fa-heart text-red-500', atk: 'fas fa-khanda text-orange-400', spAtk: 'fas fa-magic text-purple-400', def: 'fas fa-shield-alt text-blue-400', spDef: 'fas fa-shield-virus text-blue-400', spd: 'fas fa-running text-green-400', acc: 'fas fa-crosshairs text-yellow-300' };
+		    const statsHtml = Object.keys(statNames).map(statKey => {
+		        const { value: effectiveValue, statusEffect } = getEffectiveStat(char, statKey);
+		        const baseValue = (statKey === 'hp') ? char.hp : char[statKey].val;
+		        let statClass = '';
+		        if (statusEffect === 'positive') statClass = 'stat-positive'; else if (statusEffect === 'negative') statClass = 'stat-negative';
+		        const valueDisplay = (isDM || (!isDM && char.id === currentPlayerId))
+		          ? `<input type="number" class="dm-stat-input w-16 px-1 text-center bg-gray-700 rounded border border-gray-600"
+		                    value="${baseValue}" data-stat-key="${statKey}" min="0">`
+		          : `<span class="${statClass} ml-1">${effectiveValue}</span>`;
+		        const growthDisplay = isDM && statKey !== 'hp' && char[statKey] ? `(+${char[statKey].growth})` : '';
+		        return `<div class="stat-box col-span-1"><i class="${statIcons[statKey]} icon"></i><span>${statNames[statKey]}:</span> ${valueDisplay} ${growthDisplay}</div>`;
+		    }).join('');
+		    $('#profile-stats')
+    			 .addClass('grid grid-cols-2')
+		      .html(statsHtml);
+		
+		    // INVENTORY
+		    const inventoryHtml = (char.inventory || []).map((item, index) => {
+		        const dmButtons = isDM ? `<div class="space-x-1"><button class="dm-transfer-item-btn px-2 py-1 bg-blue-600 rounded text-xs" data-item-name="${item}"><i class="fas fa-exchange-alt"></i></button><button class="dm-remove-item-btn px-2 py-1 bg-red-600 rounded text-xs" data-item-index="${index}"><i class="fas fa-times"></i></button></div>` : '';
+		        return `<div class="p-1 rounded bg-gray-800 flex justify-between items-center text-xs"><span>${getItemIcon(item)}${item}</span>${dmButtons}</div>`;
+		    }).join('');
+		    $('#profile-inventory').html(inventoryHtml || '<p class="text-xs text-gray-500 text-center">Empty</p>');
+		
+		    // STATUSES
+		    const statusesHtml = (char.statuses || []).map((s, index) => {
+		        const dmButton = isDM ? `<button class="dm-remove-status-btn ml-2 text-red-500" data-status-index="${index}">&times;</button>` : '';
+		        return `<span class="px-2 py-1 bg-gray-800 text-xs rounded-full flex items-center">${getStatusIcon(s.name)} ${s.name} (${s.duration})${dmButton}</span>`;
+		    }).join('');
+		    $('#profile-statuses').html(statusesHtml || '<p class="text-xs text-gray-500 text-center">None</p>');
+		
+		    // TYPE EFFECTIVENESS (RESTORED)
+		    const typeInfoContainer = $('#type-info');
+		    let strengthsHtml = '', weaknessesHtml = '', immunitiesHtml = '';
+		    char.types.forEach(type => {
+		        const typeData = typeEffectiveness[type.toLowerCase()];
+		        if (!typeData) return;
+		        if (typeData.strengths.length > 0) strengthsHtml += `<p class="text-sm font-bold mt-2">${typeData.name} Strong Against:</p><div class="flex flex-wrap gap-1">${typeData.strengths.map(s => getTypeIcon(s)).join('')}</div>`;
+		        if (typeData.weaknesses.length > 0) weaknessesHtml += `<p class="text-sm font-bold mt-2">${typeData.name} Weak Against:</p><div class="flex flex-wrap gap-1">${typeData.weaknesses.map(w => getTypeIcon(w)).join('')}</div>`;
+		        if (typeData.immunities && typeData.immunities.length > 0) immunitiesHtml += `<p class="text-sm font-bold mt-2">${typeData.name} Immune To:</p><div class="flex flex-wrap gap-1">${typeData.immunities.map(i => getTypeIcon(i)).join('')}</div>`;
                 });
-                if (strengthsHtml || weaknessesHtml || immunitiesHtml) {
-                    typeInfoContainer.html(`<h3 class="text-lg mt-4 mb-2 text-center border-t border-gray-600 pt-2">Type Effectiveness</h3>${strengthsHtml}${weaknessesHtml}${immunitiesHtml}`);
-                } else {
-                    typeInfoContainer.html('');
-                }
+		    if (strengthsHtml || weaknessesHtml || immunitiesHtml) {
+		        typeInfoContainer.html(`<h3 class="text-lg mt-4 mb-2 text-center border-t border-gray-600 pt-2">Type Effectiveness</h3>${strengthsHtml}${weaknessesHtml}${immunitiesHtml}`);
+		    } else {
+		        typeInfoContainer.html('');
+		    }
 
-                // DM CONTROLS
-                if (isDM) {
-                    $('#dm-add-item-select').html(ALL_ITEMS.map(i => `<option value="${i}">${i}</option>`).join(''));
-                    $('#dm-add-status-select').html(ALL_STATUSES.map(s => `<option value="${s.name}">${s.name}</option>`).join(''));
-                }
-                openModal('profile');
+		    // DM CONTROLS
+		    if (isDM) {
+		        $('#dm-profile-edit').removeClass('hidden');
+		        $('#dm-add-item-select').html(Object.keys(ALL_ITEMS).map(i => `<option value="${i}">${i}</option>`).join(''));
+		        $('#dm-add-status-select').html(ALL_STATUSES.map(s => `<option value="${s.name}">${s.name}</option>`).join(''));
+		    } else {
+		        $('#dm-profile-edit').addClass('hidden');
+		    }
+
+		    const isEnemy = enemies.some(e => e.id === id);
+		    if (isEnemy && !isDM) {
+		        $('#profile-name').text(char.name);
+		        $('#profile-portrait').html(getPokemonIcon(char.name));
+		        $('#profile-stats').removeClass('grid grid-cols-2').html('<p class="text-xs text-gray-500 text-center">Hidden</p>');
+		        $('#profile-inventory').html('<p class="text-xs text-gray-500 text-center">Hidden</p>');
+		        $('#profile-statuses').html('<p class="text-xs text-gray-500 text-center">Hidden</p>');
+		        $('#dm-profile-edit').addClass('hidden');
+            }
+
+		    openModal('profile');
             }
 
             // --- Event Handlers ---
-            $('#create-room-button').on('click', () => { isDM = true; ELS.body.addClass('dm-mode'); ELS.roomCodeDisplay.text(Math.floor(1000 + Math.random() * 9000)); players = JSON.parse(JSON.stringify(initialPlayers)); enemies = JSON.parse(JSON.stringify(initialEnemies)); ELS.waitingPlayerList.html(players.map(p => `<p>${p.name} has joined!</p>`).join('')); showScreen('dm-waiting-room'); });
-            $('#start-game-button').on('click', () => { if (players.length === 0) players = JSON.parse(JSON.stringify(initialPlayers)); if (enemies.length === 0) enemies = JSON.parse(JSON.stringify(initialEnemies)); showScreen('game-board'); ELS.playerIdentity.text('You are: The DM'); $('#viewToggle').text('Player View'); renderAll(); logAction('DM started game.'); });
-            $('#join-room-button').on('click', () => { const username = $('#username-input').val(); const roomCode = $('#room-code-input').val(); if (!username.trim() || !roomCode.trim()) { ELS.lobbyWarning.text("Username and Room Code required!"); return; } ELS.lobbyWarning.text(""); isDM = false; players = JSON.parse(JSON.stringify(initialPlayers)); enemies = JSON.parse(JSON.stringify(initialEnemies)); currentPlayerId = 'p1'; players[0].name = username; showScreen('game-board'); ELS.body.removeClass('dm-mode'); ELS.playerIdentity.text(`You are: ${username}`); $('#viewToggle').text('DM View'); renderAll(); });
-            $('#save-button').on('click', () => { const gameState = { players, enemies, currentTurnIndex, isDMTurn }; const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(gameState, null, 2)); a.download = "pmd-save.json"; a.click(); a.remove(); logAction("Game state saved."); });
-            $('#upload-save-button').on('click', () => ELS.saveFileInput.click());
-            ELS.saveFileInput.on('change', (event) => { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { try { const loaded = JSON.parse(e.target.result); players = loaded.players || []; enemies = loaded.enemies || []; currentTurnIndex = loaded.currentTurnIndex || 0; isDMTurn = loaded.isDMTurn || false; logAction("Save file loaded!"); ELS.waitingPlayerList.html(players.map(p => `<p>${p.name} (from save)</p>`).join('')); } catch (error) { logAction("Error reading save file."); } }; reader.readAsText(file); });
-            $('#viewToggle').on('click', () => { isDM = !isDM; ELS.body.toggleClass('dm-mode', isDM); if (isDM) { ELS.playerIdentity.text('You are: The DM'); $('#viewToggle').text('Player View'); } else { ELS.playerIdentity.text(`You are: ${players[0].name}`); $('#viewToggle').text('DM View'); } renderAll(); });
-            $('#end-turn-button').on('click', () => { if (isDMTurn) ELS.body.removeClass('dm-turn'); isDMTurn = false; let nextIndex = -1; const startIndex = (currentTurnIndex + 1) % turnOrder.length; for (let i = 0; i < turnOrder.length; i++) { let checkIndex = (startIndex + i) % turnOrder.length; if (!turnOrder[checkIndex].turnTaken) { nextIndex = checkIndex; break; } } if (nextIndex !== -1) { if (turnOrder[currentTurnIndex]) turnOrder[currentTurnIndex].turnTaken = true; logAction(`${turnOrder[currentTurnIndex]?.name || 'DM'} ended turn.`); currentTurnIndex = nextIndex; logAction(`Now ${turnOrder[currentTurnIndex].name}'s turn.`); } else { logAction("Round finished. DM's turn."); players.forEach(p => p.turnTaken = false); enemies.forEach(e => e.turnTaken = false); takeDMTurn(); } renderAll(); });
-            $('#dice-buttons').on('click', 'button', function () { rollDie($(this).data('sides'), 'player'); });
-            ELS.playersList.add(ELS.enemiesList).on('change', '.turn-taken-checkbox', function () { const charId = $(this).data('id'); const isChecked = $(this).is(':checked'); const char = players.find(p => p.id === charId) || enemies.find(e => e.id === charId); if (char) { char.turnTaken = isChecked; logAction(`DM set ${char.name} turn: ${isChecked}`); } });
-            ELS.enemiesList.on('click', '.remove-enemy-btn', function () { const enemyId = $(this).data('id'); enemies = enemies.filter(e => e.id !== enemyId); renderAll(); logAction(`DM removed enemy ${enemyId}.`); });
+            $('#dice-buttons').on('click', 'button', function () { rollDie($(this).data('sides'), isDM ? 'dm' : 'player'); });
+
+            // Only allow DM to use turn checkboxes and enemy removal buttons
+            // Replace the whole "Only allow DM to use turn checkboxes and enemy removal buttons" block with this:
+
+            ELS.playersList.add(ELS.enemiesList).on('change', '.turn-taken-checkbox', function () {
+                if (!isDM) return;
+                const charId = $(this).data('id');
+                const isChecked = $(this).is(':checked');
+                const char = players.find(p => p.id === charId) || enemies.find(e => e.id === charId);
+                if (char) {
+                    char.turnTaken = isChecked;
+                    logAction(`DM set ${char.name} turn: ${isChecked}`);
+            }
+            });
+
+            ELS.enemiesList.on('click', '.remove-enemy-btn', function () {
+                if (!isDM) return;
+                const enemyId = $(this).data('id');
+                const removed = enemies.find(e => e.id === enemyId);
+                enemies = enemies.filter(e => e.id !== enemyId);
+                renderAll();
+                if (removed) logAction(`DM removed ${removed.name}.`);
+            });
+
             $('.modal').on('click', '.close-button', function () { $(this).closest('.modal').removeClass('flex'); });
-            $('#attack-button').on('click', openAttackModal);
-            $('#attack-list').on('click', '.select-attack-btn', function () { selectTargetsModal($(this).data('attack-name')); });
+
+            $('body').on('click', '#team-pouch-button', openTeamPouchModal);
+
+
+            // Player Actions
+            ELS.actionBoard.on('click', '#end-turn-button', function () {
+                const previousChar = turnOrder[currentTurnIndex];
+                if (previousChar) {
+                    previousChar.turnTaken = true;
+                    logAction(`${previousChar.name} ended their turn.`);
+            }
+                currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
+                renderAll();
+            });
+            ELS.actionBoard.on('click', '#dm-end-turn-btn', function () {
+                logAction("DM ended their turn.");
+                currentTurnIndex = (currentTurnIndex + 1) % turnOrder.length;
+                players.forEach(p => p.turnTaken = false);
+                enemies.forEach(e => e.turnTaken = false);
+                renderAll();
+            });
+
+            $('#submit-new-enemy').on('click', function () {
+                if (!isDM) return;
+
+                const species = $('#pokemon-select').val();
+                const name = ($('#enemy-name-input').val() || '').trim() || species;
+                const level = parseInt($('#enemy-level-input').val(), 10) || 1;
+                const hp = parseInt($('#enemy-hp-input').val(), 10) || 50;
+
+                const tpl = SPECIES_TEMPLATES[species] || {
+                    types: ['normal'],
+                    baseStats: { atk: 20, spAtk: 20, def: 20, spDef: 20, spd: 20, acc: 85 }
+                };
+
+                const id = 'e' + Date.now();
+                const mk = (v) => ({ val: v, growth: 0, status: null });
+
+                const newEnemy = {
+                    id, name, level, hp,
+                    atk: mk(tpl.baseStats.atk),
+                    spAtk: mk(tpl.baseStats.spAtk),
+                    def: mk(tpl.baseStats.def),
+                    spDef: mk(tpl.baseStats.spDef),
+                    spd: mk(tpl.baseStats.spd),
+                    acc: mk(tpl.baseStats.acc),
+                    types: tpl.types,
+                    turnTaken: false,
+                    statuses: [],
+                    inventory: []
+                };
+
+                enemies.push(newEnemy);
+                closeModal('add-enemy');
+                renderAll();
+                logAction(`DM added enemy ${name} (Lvl ${level}).`);
+                $('#enemy-name-input').val('');
+            });
+
+
+
             $('#targets-list-container').on('click', '.target-btn', function () { logAction(`${players.find(p => p.id === currentPlayerId).name} attacked ${$(this).data('target-name')} with ${$(this).data('attack-name')}`); closeModal('targets'); });
-            $('#inventory-button').on('click', openInventoryModal);
             $('#inventory-list').on('click', '.use-item-btn', function () { openUseItemModal($(this).data('item')); });
             $('#inventory-list').on('click', '.share-item-btn', function () { openShareModal($(this).data('item')); });
             $('#share-player-list').on('click', '.confirm-use-item-btn', function () { const item = $(this).data('item'); const targetId = $(this).data('target-id'); const user = players.find(p => p.id === currentPlayerId); const target = players.find(p => p.id === targetId) || enemies.find(e => e.id === targetId); if (user && target) logAction(`${user.name} used ${item} on ${target.name}.`); closeModal('share-item'); });
             $('#share-player-list').on('click', '.confirm-share-btn', function () { const recipientId = $(this).data('recipient-id'); const sharer = players.find(p => p.id === currentPlayerId); const recipient = players.find(p => p.id === recipientId); if (sharer && recipient && itemToShare) { sharer.inventory = sharer.inventory.filter(i => i !== itemToShare); recipient.inventory.push(itemToShare); logAction(`${sharer.name} shared ${itemToShare} with ${recipient.name}.`); closeModal('share-item'); } });
             ELS.playersList.add(ELS.enemiesList).on('click', '.portrait', function () { openProfileModal($(this).data('id')); });
-            $('#add-enemy-button').on('click', () => openModal('add-enemy'));
-            ELS.musicOptionsToggle.on('click', () => openModal('music'));
+            $('#add-enemy-button').on('click', () => {
+                if (!isDM) return;
+                openModal('add-enemy');
+            });
             $('#log-header').on('click', () => { $('#log-content').toggleClass('hidden'); $('#log-toggle-icon').text($('#log-content').hasClass('hidden') ? '+' : '-'); });
+            $('body').on('click', '.character-select-btn', function () { const selectedId = $(this).data('id'); startGame(selectedId); });
+            $('#reset-selections-btn').on('click', function () { localStorage.removeItem('pokeQuestTakenRoles'); location.reload(); });
+
+            // --- TEAM POUCH HANDLERS ---
+            $('#dm-pouch-coins-input').on('change', function() {
+                if (!isDM) return;
+                const newAmount = parseInt($(this).val(), 10);
+                if (!isNaN(newAmount)) {
+                    teamPouch.coins = newAmount;
+                    logAction(`DM set team coins to ${newAmount}.`);
+                }
+            });
+
+            $('#dm-add-pouch-item-btn').on('click', function() {
+                if (!isDM) return;
+                const itemToAdd = $('#dm-add-pouch-item-select').val();
+                if (itemToAdd) {
+                    teamPouch.items.push(itemToAdd);
+                    logAction(`DM added ${itemToAdd} to the Team Pouch.`);
+                    openTeamPouchModal(); // Re-render the modal
+                }
+            });
+
+            $('#pouch-inventory-list').on('click', '.transfer-from-pouch-btn', function() {
+                const pouchHolder = players.find(p => p.inventory && p.inventory.includes('Team Pouch'));
+                const isPlayerTurn = players.some(p => p.id === turnOrder[currentTurnIndex]?.id && p.id === currentPlayerId);
+                const canManagePouch = isDM || (pouchHolder && pouchHolder.id === currentPlayerId && isPlayerTurn);
+                if (!canManagePouch) return;
+                const item = $(this).data('item');
+                openTransferFromPouchModal(item);
+            });
+
+            $('#transfer-from-pouch-player-list').on('click', '.confirm-transfer-from-pouch-btn', function() {
+                if (!itemToTransferFromPouch) return;
+                const pouchHolder = players.find(p => p.inventory && p.inventory.includes('Team Pouch'));
+                const isPlayerTurn = players.some(p => p.id === turnOrder[currentTurnIndex]?.id && p.id === currentPlayerId);
+                const canManagePouch = isDM || (pouchHolder && pouchHolder.id === currentPlayerId && isPlayerTurn);
+                if (!canManagePouch) return;
+
+                const recipientId = $(this).data('recipient-id');
+                const recipient = players.find(p => p.id === recipientId) || enemies.find(e => e.id === recipientId);
+                
+                if (recipient) {
+                    const itemIndex = teamPouch.items.indexOf(itemToTransferFromPouch);
+                    if (itemIndex > -1) {
+                        teamPouch.items.splice(itemIndex, 1);
+                        if (!recipient.inventory) recipient.inventory = [];
+                        recipient.inventory.push(itemToTransferFromPouch);
+                        const managerName = isDM ? 'DM' : pouchHolder.name;
+                        logAction(`${managerName} transferred ${itemToTransferFromPouch} to ${recipient.name} from the Team Pouch.`);
+                        itemToTransferFromPouch = null;
+                closeModal('transfer-from-pouch');
+                    }
+                }
+            });
+
 
             // --- DM PROFILE EDITING HANDLERS ---
-            $('#profile-stats').on('change', '.dm-stat-input', function () {
-                const charId = $('#profile-modal').attr('data-char-id'); const statKey = $(this).data('stat-key'); const newValue = parseInt($(this).val(), 10);
-                const char = players.find(p => p.id === charId) || enemies.find(e => e.id === charId);
-                if (char && !isNaN(newValue)) { if (statKey === 'hp') { char.hp = newValue; } else { char[statKey].val = newValue; } logAction(`DM set ${char.name}'s ${statKey.toUpperCase()} to ${newValue}.`); renderAll(); }
-            });
+			$('#profile-stats').on('change', '.dm-stat-input', function () {
+			  const charId = $('#profile-modal').attr('data-char-id');
+			  const statKey = $(this).data('stat-key');
+			  const newValue = parseInt($(this).val(), 10);
+			  const char = players.find(p => p.id === charId) || enemies.find(e => e.id === charId);
+			  if (!char || isNaN(newValue)) return;
+			
+			  // Permission: DM can edit anyone; players can edit ONLY their own character
+			  if (!isDM && char.id !== currentPlayerId) {
+			    // revert the input to the current value if not allowed
+			    $(this).val(statKey === 'hp' ? char.hp : (char[statKey]?.val ?? 0));
+			    return;
+			  }
+			
+			  if (statKey === 'hp') { char.hp = newValue; }
+			  else if (char[statKey]) { char[statKey].val = newValue; }
+			
+			  const who = isDM ? 'DM' : (players.find(p => p.id === currentPlayerId)?.name || 'Player');
+			  logAction(`${who} set ${char.name}'s ${statKey.toUpperCase()} to ${newValue}.`);
+			
+			  renderAll();            // refresh lists/turn order
+			  openProfileModal(charId); // refresh the open profile with updated values
+			});
             $('#dm-add-item-btn').on('click', function () {
                 const charId = $('#profile-modal').attr('data-char-id'); const char = players.find(p => p.id === charId) || enemies.find(e => e.id === charId);
                 const itemToAdd = $('#dm-add-item-select').val();
@@ -792,7 +887,8 @@
                 if (char && statusName && !isNaN(duration)) {
                     if (!char.statuses) char.statuses = [];
                     if (char.statuses.find(s => s.name === statusName)) return; // Avoid duplicate statuses
-                    const statusTemplate = ALL_STATUSES.find(s => s.name === statusName); const newStatus = { ...statusTemplate, duration: duration };
+                    const statusTemplate = ALL_STATUSES.find(s => s.name === statusName);
+                    const newStatus = { ...statusTemplate, duration };
                     char.statuses.push(newStatus); logAction(`DM applied ${statusName} to ${char.name} for ${duration} turns.`); openProfileModal(charId); renderAll();
                 }
             });
@@ -823,11 +919,62 @@
                 }
             });
 
-            // --- Init & YouTube API ---
-            var tag = document.createElement('script'); tag.src = "https://www.youtube.com/iframe_api"; var firstScriptTag = document.getElementsByTagName('script')[0]; firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-            showScreen('lobby-page');
+            // --- Init & Character Selection ---
+            function setupCharacterSelection() {
+                const takenRoles = JSON.parse(localStorage.getItem('pokeQuestTakenRoles')) || [];
+
+                const playersHtml = initialPlayers.map(p => {
+                    const isTaken = takenRoles.includes(p.id);
+                    return `
+                                <button class="character-select-btn text-center p-2 rounded-lg ${isTaken ? 'bg-gray-700 cursor-not-allowed opacity-50' : 'bg-gray-800 hover:bg-gray-600'}" data-id="${p.id}" ${isTaken ? 'disabled' : ''}>
+                                    <div class="portrait mx-auto !w-24 !h-24">${getPokemonIcon(p.name)}</div>
+                                    <p class="mt-2 text-sm">${p.name}</p>
+                                    ${isTaken ? '<p class="text-red-500 text-xs mt-1">Taken</p>' : ''}
+                                </button>
+                            `;
+                }).join('');
+                $('#character-list').html(playersHtml);
+
+                const isDMTaken = takenRoles.includes('dm');
+                if (isDMTaken) {
+                    $('#select-dm-btn').prop('disabled', true).addClass('bg-gray-700 cursor-not-allowed opacity-50').append('<p class="text-red-500 text-xs mt-1">Taken</p>');
+                }
+
+                $('#game-board').addClass('hidden');
+                $('#character-selection-screen').removeClass('hidden');
+            }
+
+            function startGame(selectedId) {
+                let takenRoles = JSON.parse(localStorage.getItem('pokeQuestTakenRoles')) || [];
+                if (!takenRoles.includes(selectedId)) {
+                    takenRoles.push(selectedId);
+                    localStorage.setItem('pokeQuestTakenRoles', JSON.stringify(takenRoles));
+                }
+
+                $('#character-selection-screen').addClass('hidden');
+                $('#game-board').removeClass('hidden');
+
+                if (selectedId === 'dm') {
+                    isDM = true;
+                    currentPlayerId = null;
+                    ELS.body.addClass('dm-mode');
+                    ELS.playerIdentity.text('You are: The DM');
+                } else {
+                    isDM = false;
+                    currentPlayerId = selectedId;
+                    ELS.body.removeClass('dm-mode');
+                    const playerName = initialPlayers.find(p => p.id === currentPlayerId)?.name || 'Player';
+                    ELS.playerIdentity.text(`You are: ${playerName}`);
+            }
+
+                players = [...initialPlayers];
+                enemies = [...initialEnemies];
+
+                logAction("Welcome to PokéQuest! The game has started.");
+                renderAll();
+                }
+
+            setupCharacterSelection();
         });
-        function onYouTubeIframeAPIReady() { /* YouTube player setup */ }
     </script>
 </body>
-</html>
