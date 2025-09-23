@@ -49,10 +49,7 @@ function doOptions(e) {
     return ContentService.createTextOutput();
   }
   Logger.log("CORS is enabled, returning headers.");
-  return ContentService.createTextOutput()
-    .addHttpHeader('Access-Control-Allow-Origin', CORS_ALLOW_ORIGIN)
-    .addHttpHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
-    .addHttpHeader('Access-Control-Allow-Headers', 'Content-Type');
+  return ContentService.createTextOutput();
 }
 
 function doPost(request) {
@@ -261,9 +258,7 @@ function httpResponse(obj) {
   
   // If CORS is enabled in the config, add the access control header.
 if (ENABLE_CORS) {
-    out.addHttpHeader('Access-Control-Allow-Origin', CORS_ALLOW_ORIGIN);
-    out.addHttpHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-    out.addHttpHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+
   }
   return out;
 }
