@@ -496,7 +496,6 @@
             }
         }
 
-        /* First load overlay with large Pokéball */
         #first-load-overlay {
             position: fixed;
             top: 0;
@@ -504,25 +503,21 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0,0,0,0.8);
-            /* Do not set a default display here; Tailwind's `hidden` utility sets
-               `display: none`, so we rely on an explicit rule below to show the
-               overlay only when it does not have the `hidden` class. */
+            /* Removed align-items and justify-content */
             z-index: 3000;
+            /* Add position: relative to make child's absolute position relative to this container */
+            position: relative;
         }
 
             #first-load-overlay img {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
                 width: 6rem;
                 height: 6rem;
                 animation: pending-bounce 1s infinite;
                 image-rendering: pixelated;
-            }
-            /* Show the overlay as a flex container only when it is not hidden. Without
-           this rule, the id selector’s specificity would override Tailwind’s
-           `hidden` class, causing the overlay to remain visible. */
-            #first-load-overlay:not(.hidden) {
-                display: flex;
-                align-items: center;
-                justify-content: center;
             }
     </style>
 </head>
@@ -672,7 +667,8 @@
                 <div class="flex justify-center items-center mb-4">
                     <i class="fas fa-coins text-yellow-400 fa-2x mr-2"></i>
                     <span id="pouch-coins-display" class="text-2xl font-bold">0</span>
-                    <input type="number" id="dm-pouch-coins-input" class="dm-stat-input ml-2 w-24 hidden dm-mode-visible-block" value="0">
+                    <!-- The DM pouch input remains hidden. As DM, the coin display itself becomes editable. -->
+                    <input type="number" id="dm-pouch-coins-input" class="hidden" value="0">
                 </div>
                 <h3 class="text-lg mt-4 mb-2 text-center">Items</h3>
                 <ul id="pouch-inventory-list" class="space-y-2"></ul>
@@ -936,7 +932,10 @@
                     id: `p${pid}-${pkmId}`,
                     playerId: pid,
                     pokemonId: pkmId,
-                    // Display name for the Pokémon (species or custom name)
+                    // Base Pokémon species name stored separately. This allows us to override `name`
+                    // for enemies (custom nickname) while still displaying the species later.
+                    pokemonName: safePoke.Name || `#${pkmId}`,
+                    // Display name defaults to the species; may be overridden (e.g. for enemies)
                     name: safePoke.Name || `#${pkmId}`,
                     // Human/player trainer name for listing
                     humanName: playerRow?.Name || '',
@@ -967,33 +966,34 @@
                 const playersHtml = players.map(p => {
                     const glow = hasNegativeStatus(p) ? 'negative-status-glow' : '';
                     const removeBtn = isDM ? `<button class="remove-player-btn px-2 py-1 bg-red-600 rounded-md text-xs ml-2" data-player-id="${p.playerId}" title="Remove Player"><i class="fa-solid fa-xmark"></i></button>` : '';
+                    // Display the trainer/human name as the main heading and the Pokémon species on the next line with level.
                     return `<div class="flex items-center space-x-2">
-                              <div class="portrait ${glow}" data-id="${p.id}"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png"/></div>
-                              <div class="flex-grow">
-                                <h3>${p.humanName || p.name}</h3>
-                                <div class="text-xs text-gray-400">${p.name} (Lvl ${p.level})</div>
-                                <span class="text-xs">HP: ${p.hp}</span>
-                              </div>
-                              ${removeBtn}
-                            </div>`;
+                          <div class="portrait ${glow}" data-id="${p.id}"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemonId}.png"/></div>
+                          <div class="flex-grow">
+                            <h3>${p.humanName || p.pokemonName || p.name}</h3>
+                            <div class="text-xs text-gray-400">${p.pokemonName || p.name} (Lvl ${p.level})</div>
+                            <span class="text-xs">HP: ${p.hp}</span>
+                          </div>
+                          ${removeBtn}
+                        </div>`;
                 }).join('');
                 ELS.playersList.html(playersHtml);
 
                 // Enemies (DM roster)
                 const enemiesHtml = enemies.map(e => {
                     const glow = hasNegativeStatus(e) ? 'negative-status-glow' : '';
-                    const dmX = isDM ? `<div class="flex justify-end items-center space-x-2"><button class="remove-enemy-btn px-2 py-1 bg-red-600 rounded-md text-xs" data-row="${e._ppRowId}">X</button></div>` : '';
-                    // For players viewing enemies, hide level and HP; for DM, show all details.
-                    const levelInfo = isDM ? `(Lvl ${e.level})` : '';
-                    const hpInfo = isDM ? `<span class="text-xs">HP: ${e.hp}</span>` : '';
+                    // Only show remove/HP/level for DM; players see only name and species.
+                    const levelText = isDM ? ` (Lvl ${e.level})` : '';
+                    const hpSpan = isDM ? `<span class="text-xs">HP: ${e.hp}</span>` : '';
+                    const removeBtn = isDM ? `<button class="remove-enemy-btn px-2 py-1 bg-red-600 rounded-md text-xs" data-row="${e._ppRowId}">X</button>` : '';
                     return `<div class="flex items-center space-x-2">
-                              <div class="flex-grow text-right">
-                                <h3>${e.name}</h3>
-                                <div class="text-xs text-gray-400">${levelInfo}</div>
-                                <div class="flex justify-end items-center space-x-2">${hpInfo}${dmX}</div>
-                              </div>
-                              <div class="portrait ${glow}" data-id="${e.id}"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${e.pokemonId}.png"/></div>
-                            </div>`;
+                          <div class="flex-grow text-right">
+                            <h3>${e.name}</h3>
+                            <div class="text-xs text-gray-400">${e.pokemonName}${levelText}</div>
+                            <div class="flex justify-end items-center space-x-2">${hpSpan}${removeBtn}</div>
+                          </div>
+                          <div class="portrait ${glow}" data-id="${e.id}"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${e.pokemonId}.png"/></div>
+                        </div>`;
                 }).join('');
                 ELS.enemiesList.html(enemiesHtml);
             }
@@ -1027,18 +1027,18 @@
                 const isEnemyTurn = !!cur && enemies.some(e => e.id === cur.id);
                 if (isDM) {
                     ELS.actionBoard.append(`<button id="dm-force-turn-btn" class="col-span-1 px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Force DM Turn"><i class="fas fa-crown"></i></button>
-                                                    <button id="dm-reset-turns-btn" class="col-span-1 px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="Reset All Turns"><i class="fas fa-redo"></i></button>
-                                                    <button id="dm-end-turn-btn" class="col-span-1 px-2 py-2 bg-purple-600 rounded-lg hover:bg-purple-700" title="End DM Turn"><i class="fas fa-forward"></i></button>`);
+                                                <button id="dm-reset-turns-btn" class="col-span-1 px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="Reset All Turns"><i class="fas fa-redo"></i></button>
+                                                <button id="dm-end-turn-btn" class="col-span-1 px-2 py-2 bg-purple-600 rounded-lg hover:bg-purple-700" title="End DM Turn"><i class="fas fa-forward"></i></button>`);
                     if (isEnemyTurn) {
                         ELS.actionBoard.append(`<button id="moves-button" class="col-span-1 px-2 py-2 bg-blue-600 rounded-lg hover:bg-blue-700" title="Moves"><i class="fa-solid fa-wand-sparkles"></i></button>
-                                                       <button id="inventory-button" class="col-span-1 px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>`);
+                                                   <button id="inventory-button" class="col-span-1 px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>`);
                     }
                 } else {
                     const isPlayerTurn = !isDMTurn && players.some(p => p.id === cur?.id && p.playerId === currentPlayerId);
                     if (isPlayerTurn) {
                         ELS.actionBoard.append(`<button id="moves-button" class="px-2 py-2 bg-blue-600 rounded-lg hover:bg-blue-700" title="Moves"><i class="fa-solid fa-wand-sparkles"></i></button>
-                                                       <button id="inventory-button" class="px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>
-                                                       <button id="end-turn-button" class="px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="End Turn"><i class="fas fa-forward"></i></button>`);
+                                                   <button id="inventory-button" class="px-2 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700" title="Inventory"><i class="fa-solid fa-sack-dollar"></i></button>
+                                                   <button id="end-turn-button" class="px-2 py-2 bg-red-600 rounded-lg hover:bg-red-700" title="End Turn"><i class="fas fa-forward"></i></button>`);
                     } else {
                         ELS.actionBoard.append(`<div class="col-span-3 text-center text-gray-400">Waiting for your turn...</div>`);
                     }
@@ -1057,10 +1057,10 @@
                     const pk = cache.Pokemon.find(x => Number(x.Id) === Number(pp.PokemonId));
                     const imgId = pk?.Id || pp.PokemonId;
                     return `<button class="character-select-btn p-4 bg-gray-700 rounded-lg shadow-lg hover:bg-gray-600" data-player-id="${p.Id}">
-                              <img class="w-20 h-20 mx-auto" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${imgId}.png"/>
-                              <div class="mt-2 text-sm font-bold text-center">${pk?.Name || 'Unknown'}</div>
-                              <div class="text-xs text-center text-gray-300">${p.Name}</div>
-                            </button>`;
+                          <img class="w-20 h-20 mx-auto" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${imgId}.png"/>
+                          <div class="mt-2 text-sm font-bold text-center">${pk?.Name || 'Unknown'}</div>
+                          <div class="text-xs text-center text-gray-300">${p.Name}</div>
+                        </button>`;
                 }).join('');
                 ELS.characterList.html(cards);
             }
@@ -1163,9 +1163,9 @@
                         const iconName = it.toLowerCase().replace(/ /g, '-');
                         const imgUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${iconName}.png`;
                         return `<div class="flex justify-between items-center bg-gray-700 rounded p-2 text-sm">
-                                      <span class="flex items-center"><img src="${imgUrl}" alt="${it}" class="item-icon mr-2"/>${it}</span>
-                                      <div class="flex space-x-1">${actions}</div>
-                                    </div>`;
+                                  <span class="flex items-center"><img src="${imgUrl}" alt="${it}" class="item-icon mr-2"/>${it}</span>
+                                  <div class="flex space-x-1">${actions}</div>
+                                </div>`;
                     }).join('') || `<div class="text-xs text-center text-gray-400">Empty</div>`;
                     ELS.profileInventory.html(invHtml);
                 }
@@ -1413,6 +1413,12 @@
                 // Render
                 ELS.pouchCoinsDisplay.text(teamPouch.coins);
                 ELS.pouchCoinsInput.val(teamPouch.coins);
+                // In DM mode the coin display becomes editable; otherwise it is read-only.
+                if (isDM) {
+                    ELS.pouchCoinsDisplay.attr('contenteditable', 'true');
+                } else {
+                    ELS.pouchCoinsDisplay.removeAttr('contenteditable');
+                }
                 // Determine if current viewer has the Team Pouch item (or is DM)
                 let canGive = isDM;
                 if (!isDM && currentPlayerId) {
@@ -1434,6 +1440,36 @@
                 const v = Number($(this).val());
                 teamPouch.coins = isFinite(v) ? v : 0;
                 ELS.pouchCoinsDisplay.text(teamPouch.coins);
+                await DB.Log.create({ Description: `POUCH_COINS=${teamPouch.coins}`, Timestamp: new Date().toISOString() });
+            });
+
+            // Toggle the game log. Clicking the log header expands/collapses the log and toggles the +/- icon.
+            $('#log-header').on('click', function () {
+                $('#log-content').toggleClass('hidden');
+                const icon = $('#log-toggle-icon');
+                const current = icon.text().trim();
+                icon.text(current === '+' ? '-' : '+');
+            });
+
+            // When in DM mode, edit Team Pouch coins directly by clicking and editing the displayed number.
+            // Pressing Enter commits the change and triggers a blur.
+            ELS.pouchCoinsDisplay.on('keypress', function (e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    $(this).blur();
+                }
+            });
+            ELS.pouchCoinsDisplay.on('blur', async function () {
+                // Only handle edits in DM mode
+                if (!isDM) return;
+                const v = Number($(this).text().trim());
+                if (!isFinite(v)) {
+                    // Revert invalid edits
+                    $(this).text(teamPouch.coins);
+                    return;
+                }
+                teamPouch.coins = v;
+                ELS.pouchCoinsInput.val(teamPouch.coins);
                 await DB.Log.create({ Description: `POUCH_COINS=${teamPouch.coins}`, Timestamp: new Date().toISOString() });
             });
 
@@ -1709,9 +1745,6 @@
                     await loadAll();
                     renderCharacterSelect();
                     ELS.characterSelection.removeClass('hidden');
-                    // Hide the first-load overlay once characters render
-                    $('#first-load-overlay').addClass('hidden');
-                    // Schedule passive refresh every 15 seconds
                     setInterval(async () => {
                         try {
                             await reloadAll();
@@ -1722,6 +1755,9 @@
                 } catch (e) {
                     console.error('Init failed', e);
                     $('body').html('<div class="text-center p-8 text-red-400">Failed to load game data. Please check the console for errors and try again later.</div>');
+                } finally {
+                    // Hide the first-load overlay once characters render or if an error occurs
+                    $('#first-load-overlay').addClass('hidden');
                 }
             };
 
