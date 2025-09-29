@@ -732,40 +732,67 @@
     <script>
         $(function () {
             // ==== API layer (same interface as your file) ============================================
-            class PokeQuestApi {
-                constructor(options) {
-                    if (!options || !options.scriptURL) throw new Error("scriptURL is required");
-                    this.scriptURL = options.scriptURL;
-                    this.apiKey = options.apiKey || "public";
-                }
-                _post(payload) {
-                    return $.ajax({
-                        url: this.scriptURL,
-                        type: "POST",
-                        crossDomain: true,
-                        processData: false,
-                        xhrFields: { withCredentials: false },
-                        dataType: "text",
-                        contentType: "text/plain;charset=utf-8",
-                        data: JSON.stringify(payload)
-                    }).then(res => {
-                        if (typeof res === "string") { try { return JSON.parse(res); } catch { return res; } }
-                        return res;
-                    });
-                }
-                _req(sheet, method, extra = {}) { return Object.assign({ key: this.apiKey, sheet, method }, extra); }
-                list(sheet, opts = {}) { return this._post(this._req(sheet, "GET", { limit: opts.limit, order: (opts.order || "asc"), start_id: opts.start_id })); }
-                get(sheet, id) { return this._post(this._req(sheet, "GET", { id })); }
-                create(sheet, row) { return this._post(this._req(sheet, "POST", { payload: row })); }
-                update(sheet, id, p) { return this._post(this._req(sheet, "PUT", { id, payload: p })); }
-                remove(sheet, id) { return this._post(this._req(sheet, "DELETE", { id })); }
-                batch(ops) { return this._post(ops.map(op => this._req(op.sheet, op.method, op))); }
+            /**
+             * Simple constructor-style functions for the API.  The prior implementation used
+             * ES2015 classes which are not supported in all Apps Script HTML environments.  These
+             * functions provide the same interface using prototypes.
+             */
+            function PokeQuestApi(options) {
+                if (!options || !options.scriptURL) throw new Error("scriptURL is required");
+                this.scriptURL = options.scriptURL;
+                this.apiKey = options.apiKey || "public";
             }
+            PokeQuestApi.prototype._post = function(payload) {
+                return $.ajax({
+                    url: this.scriptURL,
+                    type: "POST",
+                    crossDomain: true,
+                    processData: false,
+                    xhrFields: { withCredentials: false },
+                    dataType: "text",
+                    contentType: "text/plain;charset=utf-8",
+                    data: JSON.stringify(payload)
+                }).then(function(res) {
+                    if (typeof res === "string") {
+                        try { return JSON.parse(res); } catch (e) { return res; }
+                    }
+                    return res;
+                });
+            };
+            PokeQuestApi.prototype._req = function(sheet, method, extra) {
+                extra = extra || {};
+                return Object.assign({ key: this.apiKey, sheet: sheet, method: method }, extra);
+            };
+            PokeQuestApi.prototype.list = function(sheet, opts) {
+                opts = opts || {};
+                return this._post(this._req(sheet, "GET", { limit: opts.limit, order: (opts.order || "asc"), start_id: opts.start_id }));
+            };
+            PokeQuestApi.prototype.get = function(sheet, id) {
+                return this._post(this._req(sheet, "GET", { id: id }));
+            };
+            PokeQuestApi.prototype.create = function(sheet, row) {
+                return this._post(this._req(sheet, "POST", { payload: row }));
+            };
+            PokeQuestApi.prototype.update = function(sheet, id, p) {
+                return this._post(this._req(sheet, "PUT", { id: id, payload: p }));
+            };
+            PokeQuestApi.prototype.remove = function(sheet, id) {
+                return this._post(this._req(sheet, "DELETE", { id: id }));
+            };
+            PokeQuestApi.prototype.batch = function(ops) {
+                var self = this;
+                return this._post(ops.map(function(op) { return self._req(op.sheet, op.method, op); }));
+            };
 
-            class Table {
-                constructor(api, sheet) { this.api = api; this.sheet = sheet; }
-                list(o) { return this.api.list(this.sheet, o); } get(id) { return this.api.get(this.sheet, id); } create(r) { return this.api.create(this.sheet, r); } update(id, p) { return this.api.update(this.sheet, id, p); } remove(id) { return this.api.remove(this.sheet, id); }
+            function Table(api, sheet) {
+                this.api = api;
+                this.sheet = sheet;
             }
+            Table.prototype.list = function(o) { return this.api.list(this.sheet, o); };
+            Table.prototype.get = function(id) { return this.api.get(this.sheet, id); };
+            Table.prototype.create = function(r) { return this.api.create(this.sheet, r); };
+            Table.prototype.update = function(id, p) { return this.api.update(this.sheet, id, p); };
+            Table.prototype.remove = function(id) { return this.api.remove(this.sheet, id); };
 
             function createPokeQuestDb(api) {
                 return {
@@ -1585,7 +1612,15 @@
                 const sides = Number($(this).data('sides')) || 6;
                 const result = Math.floor(Math.random() * sides) + 1;
                 ELS.diceDisplay.text(result).removeClass('dice-animate'); void ELS.diceDisplay[0]?.offsetWidth; ELS.diceDisplay.addClass('dice-animate');
-                await logRemote(`${isDM ? 'DM' : ('P' + (currentPlayerId || '?'))} rolled d${sides}: ${result}`);
+                // Determine actor name for logging: use DM or the current player's display name
+                let actorName;
+                if (isDM) {
+                    actorName = 'DM';
+                } else {
+                    const currentChar = players.find(function(p) { return Number(p.playerId) === Number(currentPlayerId); });
+                    actorName = currentChar ? currentChar.name : ('P' + (currentPlayerId || '?'));
+                }
+                await logRemote(`${actorName} rolled d${sides}: ${result}`);
             });
 
             // Turn controls ===========================================================================

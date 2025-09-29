@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Poke Quest | Console</title>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <style>
+    :root{
+      --pk-red:#e4000f;
+      --pk-blue:#3d7dca;
+      --pk-yellow:#ffcb05;
+      --pk-black:#0b0d0f;
+      --pk-dark:#0e141a;
+      --fg:#e7f2ff;
+      --fg-dim:#b5d0ff;
+      --danger:#ff6b6b;
+      --ok:#7CFC7C;
+    }
+    html,body{height:100%;}
+    body{
+      margin:0;
+      background:
+        radial-gradient(120% 200% at 20% -10%, rgba(61,125,202,.15), transparent 60%),
+        radial-gradient(120% 200% at 80% -10%, rgba(228,0,15,.12), transparent 60%),
+        linear-gradient(180deg, var(--pk-dark), var(--pk-black));
+      color:var(--fg);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      letter-spacing:.3px;
+      overflow:hidden;
+      user-select:text;
+    }
+    .scanlines:before{
+      content:"";
+      position:fixed; inset:0;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255,255,255,.04),
+        rgba(255,255,255,.04) 1px,
+        rgba(0,0,0,.06) 2px,
+        rgba(0,0,0,.06) 3px
+      );
+      mix-blend-mode: soft-light;
+      pointer-events:none;
+    }
+    .vignette:after{
+      content:"";
+      position:fixed; inset:0;
+      box-shadow: inset 0 0 200px 40px rgba(0,0,0,.7);
+      pointer-events:none;
+    }
+    .terminal{
+      box-sizing:border-box;
+      height:100%;
+      padding:18px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      text-shadow: 0 0 6px rgba(255,203,5,.25);
+    }
+    .titlebar{
+      display:flex; align-items:center; justify-content:space-between;
+      border:2px solid var(--pk-yellow);
+      padding:6px 10px;
+      text-transform: uppercase;
+      background: linear-gradient(180deg, rgba(255,203,5,.08), rgba(0,0,0,.05));
+      box-shadow: 0 0 18px rgba(255,203,5,.12);
+    }
+    .titlebar .left, .titlebar .right {display:flex; align-items:center; gap:10px}
+    .title{ font-weight:700; letter-spacing:1px; }
+    .title .accent{color:var(--pk-yellow);}
+    .badge{ border:1px solid var(--pk-blue); padding:2px 6px; font-size:12px; background: rgba(61,125,202,.12); }
+    .icon{ width:20px;height:20px; image-rendering: pixelated; filter: drop-shadow(0 0 4px rgba(255,203,5,.25)); }
+    .frame{
+      position: relative;
+      border:2px solid var(--pk-blue);
+      box-shadow: 0 0 0 2px rgba(61,125,202,.25), 0 0 28px rgba(61,125,202,.15);
+      padding:12px;
+      flex:1;
+      overflow:auto;
+    }
+    
+    .spinner-icon{
+      width:16px; height:16px; image-rendering: pixelated;
+      animation: spin 1s linear infinite;
+      filter: drop-shadow(0 0 4px rgba(255,203,5,.35));
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .ascii{ white-space:pre; line-height:1.05; font-size:12px; color:var(--fg-dim); margin:0; }
+    .hr{border-top:2px solid rgba(255,203,5,.7); margin:10px 0;}
+    .prompt-line{display:flex; gap:8px; align-items:center; margin-top:8px;}
+    .caret{display:inline-block; width:8px; height:1.15em; background:var(--pk-yellow); animation: caret 1s steps(1) infinite;}
+    @keyframes caret { 50% { opacity:0; } }
+    .menu{margin-top:6px}
+    .opt{padding:2px 0;}
+    .opt.active{background:rgba(61,125,202,.18);}
+    .muted{opacity:.7}
+    .danger{color:var(--danger)}
+    .ok{color:var(--ok)}
+    .footer{opacity:.85; font-size:12px; text-align:center; padding-top:2px}
+    .panel{ border:1px dashed rgba(255,203,5,.45); padding:8px; margin:6px 0; }
+    .panel h4{ margin:0 0 6px 0; color:var(--pk-yellow); }
+    .mono{ font-family: inherit; }
+    ::-webkit-scrollbar{width:10px;height:10px}
+    ::-webkit-scrollbar-thumb{background:rgba(255,203,5,.35); border:2px solid transparent; background-clip:padding-box}
+    ::-webkit-scrollbar-track{background:transparent}
+    @media (min-width:900px){ .ascii{font-size:13px} }
+    @media (max-width:480px){ .ascii{font-size:10px} }
+  
+.loading-anchor{
+  position: sticky;
+  top: 0;
+  height: 0;             /* zero-height so it doesn't push content */
+  z-index: 10;           /* keep above scrolling text */
+}
+.loading{
+  position: absolute;    /* overlay inside the sticky anchor */
+  right: 10px;
+  top: 10px;
+  display: none;         /* toggled to flex by JS when loading */
+  align-items: center;
+  gap: 8px;
+  background: rgba(0,0,0,.35);
+  border:1px solid rgba(255,203,5,.6);
+  padding:4px 8px;
+  box-shadow: 0 0 12px rgba(255,203,5,.15);
+  font-size:12px;
+  z-index: 11;
+  width: max-content;    /* never stretch full width */
+  max-width: 60vw;       /* stay compact even on narrow screens */
+  border-radius: 6px;
+}
+
+</style>
+</head>
+<body class="scanlines vignette">
+  <div class="terminal" aria-live="polite" aria-label="Poke Quest Console">
+    <div class="titlebar">
+      <div class="left">
+        <img class="icon" alt="Poké Ball" src="https://archives.bulbagarden.net/media/upload/9/93/Bag_Pok%C3%A9_Ball_Sprite.png" />
+        <div class="title"><span class="accent">Poke</span> Quest — Dungeon Terminal</div>
+      </div>
+      <div class="right">
+        <span class="badge">ONLINE</span>
+        <img class="icon" alt="Pikachu icon" src="https://archives.bulbagarden.net/media/upload/1/19/HOME_Let%27s_Go_Pikachu_icon.png" />
+      </div>
+    </div>
+
+    <div class="frame" id="screen" role="region" aria-label="Console output">
+      <div class="loading-anchor">
+<div id="loading" class="loading">
+        <img class="spinner-icon" alt="loading" src="https://archives.bulbagarden.net/media/upload/9/93/Bag_Pok%C3%A9_Ball_Sprite.png" />
+        <span id="loading-text">Loading…</span>
+</div>
+      </div>
+<pre class="ascii" aria-hidden="true">
+  ____       _          _           ____                  _   
+ |  _ \ ___ | | _____  | | _____   / __ \ _   _  ___  ___| |_ 
+ | |_) / _ \| |/ / _ \ | |/ / _ \ / / _` | | | |/ _ \/ __| __|
+ |  __/ (_) |   <  __/ |   <  __/| | (_| | |_| |  __/\__ \ |_ 
+ |_|   \___/|_|\_\___| |_|\_\___| \ \__,_|\__,_|\___||___/\__|
+                                   \____/                     
+                   P O K E   Q U E S T   T E R M I N A L
+</pre>
+      <div class="hr"></div>
+      <div id="log" class="mono"></div>
+      <div id="panel" class="panel mono" aria-live="polite"></div>
+      <div class="prompt-line"><span>&gt; </span><span class="muted" id="status">Booting…</span><span class="caret"></span></div>
+    </div>
+
+    <div class="footer">Controls: ↑/↓ move • ←/→ -/+ adjust • Enter save • R reload • Esc back/logout • Shift+↑/↓ scroll console</div>
+  </div>
+
+  <script>
+    const SPREADAPI_URL = "https://script.google.com/macros/s/AKfycbyrhqbuFyBtELKHYzhsQXtZEtzPjqB-SSCarGPx8a3EHJNhmQO_uCSfFwKUZaYFYuDU/exec";
+
+    class PQApi {
+      constructor(url){ this.url = url; }
+      async call(body){
+        const res = await $.ajax({ url:this.url, type:"POST", data:JSON.stringify(body), processData:false });
+        try { return (typeof res === "string") ? JSON.parse(res) : res; } catch { return res; }
+      }
+      normalize(x){
+        if (Array.isArray(x)) return x;
+        if (!x) return [];
+        if (typeof x === "string"){
+          try { return this.normalize(JSON.parse(x)); } catch { return []; }
+        }
+        if (Array.isArray(x.data)) return x.data;
+        if (Array.isArray(x.rows)) return x.rows;
+        if (Array.isArray(x.values)) return x.values;
+        if (Array.isArray(x.result)) return x.result;
+        if (typeof x === "object"){ const vals = Object.values(x); if (vals.every(v => typeof v === "object")) return vals; }
+        return [];
+      }
+      async get(sheet){ return this.normalize(await this.call({ method:"GET", sheet, order:"ASC" })); }
+      async post(sheet, payload){ return await this.call({ method:"POST", sheet, payload }); }
+      async put(sheet, id, payload){ return await this.call({ method:"PUT", sheet, id, payload }); }
+    }
+    const API = new PQApi(SPREADAPI_URL);
+
+    const $screen = $("#screen");
+    const $log = $("#log");
+    const $panel = $("#panel");
+    const $status = $("#status");
+    const $loading = $("#loading");
+    const $loadingText = $("#loading-text");
+    const lc = s => String(s ?? "").trim().toLowerCase();
+
+    const Session = {
+      save(role, who){ localStorage.setItem("pq.role", role); localStorage.setItem("pq.who", JSON.stringify(who || null)); },
+      load(){ return { role: localStorage.getItem("pq.role"), who: JSON.parse(localStorage.getItem("pq.who") || "null") }; },
+      clear(){ localStorage.removeItem("pq.role"); localStorage.removeItem("pq.who"); }
+    };
+
+    function writeLine(text, cls){ const $line=$("<div>").text(text); if (cls) $line.addClass(cls); $log.append($line); $screen.scrollTop($screen[0].scrollHeight); }
+    function writeHTML(html){ const $line=$("<div>").html(html); $log.append($line); $screen.scrollTop($screen[0].scrollHeight); }
+    function divider(){ $log.append($("<div class='hr'>")); }
+    async function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+    function renderPanel(html){ $panel.html(html); $screen.scrollTop($screen[0].scrollHeight); }
+    function setLoading(on, text){
+      if (text) $loadingText.text(text);
+      $loading.css("display", on ? "flex" : "none");
+    }
+
+    async function fetchPlayers(){
+      setLoading(true, "Loading players…");
+      const rows = await API.get("players");
+      setLoading(false);
+      const host = rows.find(r => lc(r.type)==="host");
+      const players = rows.filter(r => lc(r.type)==="player" && r.user)
+                          .map((r,i)=>({ id:r._id??(i+1), user:String(r.user) }));
+      return { players, hostName: host?.user || "Dungeon Master" };
+    }
+
+    async function fetchAllStats(){
+      setLoading(true, "Loading stats…");
+      const rows = await API.get("player_stats");
+      setLoading(false);
+      return rows;
+    }
+
+    async function fetchStatsFor(user){
+      const all = await fetchAllStats();
+      let row = all.find(r => lc(r.user) === lc(user));
+      if (!row){
+        await API.post("player_stats", { user, hp:10, atk:5, def:5, spd:5 });
+        const again = await fetchAllStats();
+        row = again.find(r => lc(r.user) === lc(user));
+      }
+      return row;
+    }
+
+    let $currentMenu = null;
+    let menuIndex = 0;
+    let pendingAction = null;
+
+    function renderMenu(labels, header){
+      divider();
+      writeLine(header || "Select an option:");
+      const $menu = $("<div class='menu' role='menu' aria-label='Selection Menu'>");
+      labels.forEach((label, i) => {
+        $("<div class='opt' role='menuitem' aria-selected='false'>")
+          .text(label)
+          .toggleClass("active", i === 0)
+          .appendTo($menu);
+      });
+      $log.append($menu);
+      $currentMenu = $menu;
+      menuIndex = 0;
+      updateAriaSelected();
+      $screen.scrollTop($screen[0].scrollHeight);
+    }
+
+    function updateAriaSelected(){
+      if (!$currentMenu) return;
+      const opts = $currentMenu.find(".opt");
+      opts.attr("aria-selected", "false").removeClass("active");
+      if (opts.length){
+        $(opts.get(menuIndex)).addClass("active").attr("aria-selected","true");
+      }
+    }
+
+    function move(delta){
+      if (!$currentMenu) return;
+      const opts = $currentMenu.find(".opt");
+      if (!opts.length) return;
+      menuIndex = (menuIndex + delta + opts.length) % opts.length;
+      updateAriaSelected();
+    }
+
+    async function showLogin(){
+      $status.text("Initializing KantoNet subsystems…");
+      await sleep(200);
+      writeLine("Pokedex link — OK");
+      writeLine("Guild records — OK");
+
+      let players = [], hostName = "Dungeon Master";
+      try {
+        const res = await fetchPlayers();
+        players = res.players || [];
+        hostName = res.hostName || "Dungeon Master";
+        writeLine(`Fetched ${players.length + (hostName ? 1 : 0)} directory entries.`);
+      } catch (err){
+        writeHTML('<span class="danger">Load error: '+escapeHTML(String(err))+'</span>');
+      }
+
+      renderPanel("");
+
+      if (!players.length){
+        divider();
+        writeLine("No players found in sheet 'players'. Expected: user,type");
+        renderMenu(["[Retry]","[DM: "+hostName+"]"], "Choose:");
+        pendingAction = () => {
+          if (menuIndex === 0){ $currentMenu = null; showLogin(); }
+          else { doLogin("dm", { name: hostName }); }
+        };
+        $status.text("Ready");
+        return;
+      }
+
+      const labels = players.map(p => p.user);
+      labels.push(`[DM: ${hostName}]`);
+      renderMenu(labels, "Choose your identity:");
+      window.__PQ_MENU_DATA__ = { players, hostName };
+      pendingAction = () => {
+        const idx = menuIndex;
+        if (idx === labels.length - 1){
+          doLogin("dm", { name: hostName });
+        } else {
+          const who = players[idx];
+          doLogin("player", { name: who.user });
+        }
+      };
+      $status.text("Ready");
+    }
+
+    function doLogin(role, who){
+      Session.save(role, who);
+      divider();
+      if (role === "dm"){
+        writeHTML("✔ Logged in as <b>DM: "+escapeHTML(who.name)+"</b>.");
+        divider();
+        showDmPlayerPicker();
+      } else {
+        writeHTML("✔ Logged in as <b>"+escapeHTML(who.name)+"</b>.");
+        divider();
+        showStatEditor(who.name);
+      }
+      $currentMenu = null;
+      pendingAction = null;
+    }
+
+    async function showDmPlayerPicker(){
+      renderPanel(`<h4>DM – Player Manager</h4><div>Select a player with ↑/↓ and press Enter.</div>`);
+      writeLine("Loading players for management…");
+      let players = [];
+      try { ({ players } = await fetchPlayers()); } catch {}
+      if (!players.length){
+        renderPanel(`<h4>DM – Player Manager</h4><div class="danger">No players to manage.</div>`);
+        return;
+      }
+      const labels = players.map(p => p.user);
+      renderMenu(labels, "DM: Select a player to edit:");
+      pendingAction = () => {
+        const who = players[menuIndex];
+        $currentMenu = null;
+        showStatEditor(who.user);
+      };
+    }
+
+    function renderStatsPanel(user, row, editable){
+      const fields = ["hp","atk","def","spd"];
+      let html = `<h4>${editable?"Editor — ":""}Stats: ${escapeHTML(user)}</h4>`;
+      html += `<div>Use ↑/↓ select • ←/→ -/+1 • +/- keys ±5 • Enter save • R reload • Esc back</div>`;
+      html += `<div style="margin-top:6px">`;
+      fields.forEach((f,i)=>{
+        const mark = (i===statsUI.index) ? "&gt;" : "&nbsp;";
+        html += `<div>${mark} ${f.toUpperCase()}: <b>${escapeHTML(row?.[f] ?? "-")}</b></div>`;
+      });
+      html += `</div>`;
+      renderPanel(html);
+    }
+
+    const statsUI = { index:0, current:null, user:null, id:null };
+
+    async function showStatEditor(user){
+      setLoading(true, "Loading stats…");
+      const row = await fetchStatsFor(user);
+      setLoading(false);
+      statsUI.index = 0;
+      statsUI.current = { hp:Number(row?.hp||10), atk:Number(row?.atk||5), def:Number(row?.def||5), spd:Number(row?.spd||5) };
+      statsUI.user = user;
+      statsUI.id = row?._id || null;
+      $currentMenu = null;
+      renderStatsPanel(user, statsUI.current, true);
+      pendingAction = async () => { await commitStats(); };
+    }
+
+    function adjustSelected(delta){
+      const fields = ["hp","atk","def","spd"];
+      const key = fields[statsUI.index];
+      statsUI.current[key] = Math.max(0, Number(statsUI.current[key]||0) + delta);
+      renderStatsPanel(statsUI.user, statsUI.current, true);
+    }
+
+    function moveSelection(delta){
+      const fields = ["hp","atk","def","spd"];
+      statsUI.index = (statsUI.index + delta + fields.length) % fields.length;
+      renderStatsPanel(statsUI.user, statsUI.current, true);
+    }
+
+    async function commitStats(){
+      setLoading(true, "Saving…");
+      const t0 = performance.now();
+      try{
+        // Always include `user` in the payload to keep the key column intact
+        const payload = {
+          user: statsUI.user,
+          hp: statsUI.current.hp,
+          atk: statsUI.current.atk,
+          def: statsUI.current.def,
+          spd: statsUI.current.spd
+        };
+
+        if (!statsUI.id){
+          // Create if somehow missing
+          await API.post("player_stats", payload);
+          const row = await fetchStatsFor(statsUI.user);
+          statsUI.id = row?._id || null;
+        } else {
+          await API.put("player_stats", statsUI.id, payload);
+        }
+
+        const elapsed = Math.round(performance.now() - t0);
+        writeHTML(`<span class="ok">✔ Round-trip: ${elapsed} ms</span>`);
+
+        // Verify: prefer by _id (works even if user was blanked by Sheets)
+        let verified = null;
+        if (statsUI.id){
+          const all = await fetchAllStats();
+          verified = all.find(r => r._id === statsUI.id) || null;
+        }
+        if (!verified){
+          verified = await fetchStatsFor(statsUI.user);
+        }
+
+        const mismatch = ["hp","atk","def","spd","user"]
+          .some(k => String(verified?.[k] ?? "") !== String(payload[k] ?? ""));
+
+        if (mismatch){
+          renderStatsPanel(statsUI.user, verified, true);
+          writeHTML(`<span class="danger">Server differed; view synced to server.</span>`);
+          statsUI.current = {
+            hp:Number(verified?.hp||0),
+            atk:Number(verified?.atk||0),
+            def:Number(verified?.def||0),
+            spd:Number(verified?.spd||0)
+          };
+          statsUI.id = verified?._id || statsUI.id;
+        } else {
+          writeHTML(`<span class="ok">Verified ✓</span>`);
+        }
+      }catch(err){
+        writeHTML(`<span class="danger">Update failed: ${escapeHTML(String(err))}</span>`);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function reloadFromServer(){
+      setLoading(true, "Reloading…");
+      const row = await fetchStatsFor(statsUI.user);
+      setLoading(false);
+      statsUI.current = { hp:Number(row?.hp||0), atk:Number(row?.atk||0), def:Number(row?.def||0), spd:Number(row?.spd||0) };
+      statsUI.id = row?._id || statsUI.id;
+      renderStatsPanel(statsUI.user, statsUI.current, true);
+      writeLine("Reloaded from server.");
+    }
+
+    $(document).on("keydown", async function(e){
+      const sess = Session.load();
+      const inEditor = !!(statsUI.user);
+
+      if (inEditor && (e.key === "ArrowUp" || e.key === "ArrowDown") && e.shiftKey){
+        const delta = (e.key === "ArrowUp") ? -60 : 60;
+        $screen.scrollTop($screen.scrollTop() + delta);
+        e.preventDefault();
+        return;
+      }
+
+      switch(e.key){
+        case "ArrowUp":
+          if ($currentMenu) { move(-1); e.preventDefault(); }
+          else if (inEditor) { moveSelection(-1); e.preventDefault(); }
+          break;
+
+        case "ArrowDown":
+          if ($currentMenu) { move(1); e.preventDefault(); }
+          else if (inEditor) { moveSelection(1); e.preventDefault(); }
+          break;
+
+        case "ArrowLeft":
+          if (inEditor) { adjustSelected(-1); e.preventDefault(); }
+          break;
+
+        case "ArrowRight":
+          if (inEditor) { adjustSelected(1); e.preventDefault(); }
+          break;
+
+        case "+":
+        case "=":
+          if (inEditor) { adjustSelected(5); e.preventDefault(); }
+          break;
+
+        case "-":
+          if (inEditor) { adjustSelected(-5); e.preventDefault(); }
+          break;
+
+        case "Enter":
+          if (typeof pendingAction === "function") { await pendingAction(); e.preventDefault(); }
+          break;
+
+        case "r":
+        case "R":
+          if (inEditor) { await reloadFromServer(); e.preventDefault(); }
+          break;
+
+        case "Escape":
+          if (inEditor){
+            statsUI.user = null;
+            statsUI.id = null;
+            renderPanel("");
+            divider();
+            if (sess.role === "dm") showDmPlayerPicker();
+            else { writeLine("Session cleared. Returning to login…"); Session.clear(); await showLogin(); }
+          }else{
+            Session.clear();
+            divider();
+            writeLine("Session cleared. Returning to login…");
+            $currentMenu = null;
+            pendingAction = null;
+            await showLogin();
+          }
+          e.preventDefault(); break;
+      }
+    });
+
+    function escapeHTML(s){
+      return String(s).replace(/[&<>"']/g, m => ({
+        "&":"&amp;","<":"&lt;","&gt;":">","\"":"&quot;","'":"&#39;"
+      }[m] || m));
+    }
+
+    (async function init(){
+      const sess = Session.load();
+      if (sess.role){
+        writeLine("Restoring previous session…");
+        if (sess.role==="dm"){ doLogin("dm", sess.who || { name:"DM" }); }
+        else { doLogin("player", sess.who || { name:"Player" }); }
+      } else {
+        await showLogin();
+      }
+    })();
+  </script>
+</body>
+</html>
