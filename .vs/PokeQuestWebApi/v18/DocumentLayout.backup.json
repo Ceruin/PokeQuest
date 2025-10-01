@@ -1,0 +1,41 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "E:\\Development\\PokeQuest\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{E0F2B399-8C6E-4AF7-AF0D-1C7E3A63D0B8}|PokeQuestWebApi\\PokeQuestWebApi.csproj|e:\\development\\pokequest\\pokequestwebapi\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{E0F2B399-8C6E-4AF7-AF0D-1C7E3A63D0B8}|PokeQuestWebApi\\PokeQuestWebApi.csproj|solutionrelative:pokequestwebapi\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "index.html",
+              "DocumentMoniker": "E:\\Development\\PokeQuest\\PokeQuestWebApi\\index.html",
+              "RelativeDocumentMoniker": "PokeQuestWebApi\\index.html",
+              "ToolTip": "E:\\Development\\PokeQuest\\PokeQuestWebApi\\index.html",
+              "RelativeToolTip": "PokeQuestWebApi\\index.html",
+              "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
+              "WhenOpened": "2025-10-01T03:55:13.7Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
